@@ -11,14 +11,18 @@ export default function ShowTimes({ queryKey }) {
 
   const date = new Date(Number(dateId));
   const endDate = date.toDateString();
-  //   const showTimes = state.sortedTimes?.get(endDate) || createFullDay(date);
-  const showTimes = useSortedTimes({ date, endDate, queryKey });
+  const { isLoading, showTimes } = useSortedTimes({
+    date,
+    endDate,
+    queryKey,
+  });
+  const displayTimes = state.sortedTimes?.get(endDate) ?? showTimes;
 
   return (
     <>
       <h1>ShowTimes for {date.toDateString()}</h1>
       <ul>
-        {showTimes.map((time, idx) => {
+        {displayTimes?.map((time, idx) => {
           return <li key={idx}>{time}</li>;
         })}
       </ul>

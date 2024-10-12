@@ -54,32 +54,30 @@ const formatTime = (minutes) => {
 
 // Function to find available 15-minute chunks & manage disabledDates
 // Create a map for organizing the available time slots by date (Date > [Slots])
-function sortDatesTimes({ dataUpdatedAt, eventMap, setState }) {
+function sortDatesTimes({ eventMap, setState }) {
   const sortedSlots = new Map();
-  const currentTime = new Date();
   const newDisabledDates = [];
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
-  const currentMinutes = timeToMinutes(currentTime.toTimeString().slice(0, 5));
+  const currentMinutes = timeToMinutes(new Date().toTimeString().slice(0, 5));
 
   for (let [day, events] of eventMap) {
     const chunks = [];
-    const isToday = isSameDay(day, currentTime);
+    const isToday = isSameDay(day, new Date());
 
     // Create an array of booked times
-    const bookedTimes = events.map((event) => {
-      const startMinutes = timeToMinutes(
+    const bookedTimes = events.map((event) => ({
+      start: timeToMinutes(
         `${new Date(event.start.dateTime).getHours()}:${new Date(
           event.start.dateTime
         ).getMinutes()}`
-      );
-      const endMinutes = timeToMinutes(
+      ),
+      end: timeToMinutes(
         `${new Date(event.end.dateTime).getHours()}:${new Date(
           event.end.dateTime
         ).getMinutes()}`
-      );
-      return { start: startMinutes, end: endMinutes };
-    });
+      ),
+    }));
 
     // Check each 15-minute slot
     for (let i = start; i <= end - 15; i += 15) {
@@ -111,16 +109,13 @@ function sortDatesTimes({ dataUpdatedAt, eventMap, setState }) {
     newDisabledDates.push(new Date());
   }
 
-  // if (eventMap.size > 0 || newDisabledDates.length > 0) {
-  console.log("setState in sortDatesTimes", dataUpdatedAt);
+  // console.log("setState in sortDatesTimes");
 
   setState((prevState) => ({
     ...prevState,
     disabledDates: newDisabledDates,
     sortedTimes: sortedSlots,
-    lastUpdated: dataUpdatedAt,
   }));
-  // }
 
   return sortedSlots;
 }
@@ -145,46 +140,50 @@ function createFullDay(date) {
 }
 
 function useSortedTimes({ date, endDate, queryKey }) {
-  console.log("<useSortedTimes />");
+  // console.log("<useSortedTimes />");
   const { state } = useContext(ScheduleContext);
+  const query = useEvents(queryKey);
 
-  useEvents(queryKey);
+  const getTimes = state.sortedTimes?.get(endDate);
+  const showTimes =
+    !query.isLoading && getTimes
+      ? getTimes
+      : state.sortedTimes && createFullDay(date);
 
-  return state.sortedTimes?.get(endDate) || createFullDay(date);
+  return { ...query, showTimes };
 }
 
 function useEvents(queryKey) {
-  console.log("<useEvents />");
-  const {
-    state,
-    setState,
-    state: { lastUpdated },
-  } = useContext(ScheduleContext);
+  // console.log("<useEvents />");
+
+  const { state, setState } = useContext(ScheduleContext);
+
   const getEvents = async () => {
     const response = await fetch("http://localhost:3000/events");
 
     return await response.json();
   };
 
-  const { data, dataUpdatedAt } = useQuery({
+  const query = useQuery({
     queryKey,
     queryFn: getEvents,
     refetchOnWindowFocus: false,
-    staleTime: 1000 * 60 * 1,
+    staleTime: 1000 * 15,
   });
+  const { data, dataUpdatedAt, isStale } = query;
 
   useEffect(() => {
-    // console.log("useEffect () => (useEvents)");
-    if ((!state.sortedTimes && data) || lastUpdated !== dataUpdatedAt) {
-      console.log("INSIDE useEffect () => (useEvents)");
-      const eventMap = mapEvents(data);
-      sortDatesTimes({ eventMap, setState, dataUpdatedAt });
+    if ((isStale || !state.sortedTimes) && data?.length > 0) {
+      // console.log("INSIDE useEffect () => (useEvents)");
+      sortDatesTimes({
+        eventMap: mapEvents(data),
+        setState,
+        dataUpdatedAt,
+      });
     }
-  }, [dataUpdatedAt]);
-  console.log("LASTUPDATED:", lastUpdated);
-  console.log("DATAUPDATED", dataUpdatedAt);
-  console.log(new Date(dataUpdatedAt).toTimeString().slice(0, 8));
-  // return { data };
+  }, [data, isStale, setState]);
+
+  return query;
 }
 
 export {
