@@ -1,18 +1,21 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Calendar from "react-calendar";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { maxDate, useEvents } from "../hooks/useEvents";
 import { isBefore, isSameDay } from "date-fns";
 import "../Assets/Schedule.css";
 
 export default function Scheduler({ queryKey }) {
   // console.log("<SCHEDULER />");
-
+  const location = useLocation();
+  const defaultView = location.state?.defaultView || new Date();
   const navigate = useNavigate();
-
   const { disabledDates } = useEvents({ queryKey });
 
-  const handleClick = (e) => navigate(`/schedule/${e.getTime()}`);
+  const handleClick = (e) =>
+    navigate(`/schedule/${e.getTime()}`, {
+      state: { defaultView },
+    });
 
   const tileDisabled = ({ date, view }) =>
     view === "month" && disabledDates.find((dDate) => isSameDay(dDate, date));
@@ -29,6 +32,16 @@ export default function Scheduler({ queryKey }) {
     }
   };
 
+  // For Chrome browser since it persist BrowserHistory (useLocation) state between sessions
+  useEffect(() => {
+    const handleRefresh = () =>
+      navigate(location.pathname, { state: { defaultView: new Date() } });
+
+    window.addEventListener("beforeunload", handleRefresh);
+
+    return () => window.removeEventListener("beforeunload", handleRefresh);
+  }, []);
+
   return (
     <div>
       <h2>Please select a time:</h2>
@@ -38,6 +51,7 @@ export default function Scheduler({ queryKey }) {
         onChange={handleClick}
         tileClassName={tileClassName}
         tileDisabled={tileDisabled}
+        defaultValue={defaultView}
       />
     </div>
   );
