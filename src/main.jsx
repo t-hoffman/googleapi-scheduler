@@ -11,10 +11,8 @@ const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")).render(
   <QueryClientProvider client={queryClient}>
-    <ScheduleProvider>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </ScheduleProvider>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </QueryClientProvider>
 );

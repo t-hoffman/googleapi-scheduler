@@ -2,21 +2,23 @@ import React, { useContext } from "react";
 import { ScheduleContext } from "../context/ScheduleContext";
 import { createFullDay, useEvents, useSortedTimes } from "../hooks/useEvents";
 import { useNavigate, useParams } from "react-router-dom";
+import { create } from "../../node_modules/broadcast-channel/dist/es/methods/indexed-db";
 
 export default function ShowTimes({ queryKey }) {
   //   console.log("<SHOWTIMES />");
   const { dateId } = useParams();
-  const { state } = useContext(ScheduleContext);
+  //   const { state } = useContext(ScheduleContext);
   const navigate = useNavigate();
 
   const date = new Date(Number(dateId));
   const endDate = date.toDateString();
-  const { isLoading, showTimes } = useSortedTimes({
-    date,
-    endDate,
-    queryKey,
-  });
-  const displayTimes = state.sortedTimes?.get(endDate) ?? showTimes;
+  //   const { isLoading, showTimes } = useSortedTimes({
+  //     date,
+  //     endDate,
+  //     queryKey,
+  //   });
+  const { sortedTimes } = useEvents({ queryKey });
+  const displayTimes = sortedTimes?.get(endDate) ?? createFullDay(date);
 
   return (
     <>

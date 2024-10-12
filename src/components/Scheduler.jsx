@@ -7,15 +7,16 @@ import { maxDate, useEvents } from "../hooks/useEvents";
 import { isBefore, isSameDay } from "date-fns";
 
 export default function Scheduler({ queryKey }) {
-  console.log("<SCHEDULER />");
+  // console.log("<SCHEDULER />");
 
-  const {
-    state,
-    state: { disabledDates },
-  } = useContext(ScheduleContext);
+  // const {
+  //   state,
+  //   state: { disabledDates },
+  // } = useContext(ScheduleContext);
+
   const navigate = useNavigate();
 
-  useEvents(queryKey);
+  const { disabledDates } = useEvents({ queryKey });
 
   const handleClick = (e) => navigate(`/schedule/${e.getTime()}`);
 

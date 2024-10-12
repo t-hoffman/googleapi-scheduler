@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useQuery } from "react-query";
 import { isBefore, isSameDay } from "date-fns";
 import data from "../events.json";
@@ -49,12 +49,13 @@ const formatTime = (minutes) => {
   const hours = Math.floor(totalMinutes / 60) % 12 || 12; // Convert to 12-hour format
   const formattedMinutes = String(totalMinutes % 60).padStart(2, "0");
   const period = totalMinutes >= 720 ? "PM" : "AM"; // Determine AM/PM
+
   return `${hours}:${formattedMinutes} ${period}`;
 };
 
 // Function to find available 15-minute chunks & manage disabledDates
 // Create a map for organizing the available time slots by date (Date > [Slots])
-function sortDatesTimes({ eventMap, setState }) {
+function sortDatesTimes(eventMap) {
   const sortedSlots = new Map();
   const newDisabledDates = [];
   const start = timeToMinutes(startTime);
@@ -97,7 +98,7 @@ function sortDatesTimes({ eventMap, setState }) {
       }
     }
 
-    // Insert date into the disabledDates array if no available slots
+    // Insert date into the newDisabledDates array if no available slots
     if (chunks.length === 0) {
       newDisabledDates.push(new Date(day));
     } else {
@@ -111,13 +112,13 @@ function sortDatesTimes({ eventMap, setState }) {
 
   // console.log("setState in sortDatesTimes");
 
-  setState((prevState) => ({
-    ...prevState,
-    disabledDates: newDisabledDates,
-    sortedTimes: sortedSlots,
-  }));
+  // setState((prevState) => ({
+  //   ...prevState,
+  //   disabledDates: newnewDisabledDates,
+  //   sortedTimes: sortedSlots,
+  // }));
 
-  return sortedSlots;
+  return { newDisabledDates, sortedSlots };
 }
 
 function createFullDay(date) {
@@ -141,7 +142,7 @@ function createFullDay(date) {
 
 function useSortedTimes({ date, endDate, queryKey }) {
   // console.log("<useSortedTimes />");
-  const { state } = useContext(ScheduleContext);
+  // const { state } = useContext(ScheduleContext);
   const query = useEvents(queryKey);
 
   const getTimes = state.sortedTimes?.get(endDate);
@@ -153,10 +154,13 @@ function useSortedTimes({ date, endDate, queryKey }) {
   return { ...query, showTimes };
 }
 
-function useEvents(queryKey) {
-  // console.log("<useEvents />");
+function useEvents({ queryKey, getSortedTimes }) {
+  console.log("<useEvents />");
 
-  const { state, setState } = useContext(ScheduleContext);
+  // const { state, setState } = useContext(ScheduleContext);
+
+  // const [disabledDates, setDisabledDates] = useState([]);
+  // const [sortedTimes, setSortedTimes] = useState(new Map());
 
   const getEvents = async () => {
     const response = await fetch("http://localhost:3000/events");
@@ -165,25 +169,52 @@ function useEvents(queryKey) {
   };
 
   const query = useQuery({
-    queryKey,
-    queryFn: getEvents,
-    refetchOnWindowFocus: false,
-    staleTime: 1000 * 15,
-  });
-  const { data, dataUpdatedAt, isStale } = query;
+      queryKey,
+      queryFn: getEvents,
+      refetchOnWindowFocus: false,
+      staleTime: 1000 * 15,
+    }),
+    { data, dataUpdatedAt, isStale, isLoading } = query;
 
-  useEffect(() => {
-    if ((isStale || !state.sortedTimes) && data?.length > 0) {
+  const eventData = useMemo(() => {
+    if (data?.length > 0) {
       // console.log("INSIDE useEffect () => (useEvents)");
-      sortDatesTimes({
-        eventMap: mapEvents(data),
-        setState,
-        dataUpdatedAt,
-      });
-    }
-  }, [data, isStale, setState]);
+      // console.log(data, isStale, sortedTimes);
 
-  return query;
+      const eventMap = mapEvents(data);
+      const { newDisabledDates: disabledDates, sortedSlots } =
+        sortDatesTimes(eventMap);
+
+      return { disabledDates, sortedSlots };
+    }
+  }, [data, dataUpdatedAt, isLoading, isStale]);
+
+  // console.log(eventData);
+
+  // useEffect(() => {
+  //   if (data?.length > 0 && (!sortedTimes.size || isStale)) {
+  //     // console.log("INSIDE useEffect () => (useEvents)");
+  //     // console.log(data, isStale, sortedTimes);
+
+  //     const eventMap = mapEvents(data);
+  //     const { newDisabledDates, sortedSlots } = sortDatesTimes(eventMap);
+
+  //     setDisabledDates(newDisabledDates);
+  //     setSortedTimes(sortedSlots);
+  //   }
+  // }, [data, dataUpdatedAt, isLoading, isStale]);
+
+  // return {
+  //   ...query,
+  //   disabledDates,
+  //   sortedTimes,
+  // };
+
+  return {
+    ...query,
+    disabledDates: eventData?.disabledDates || [],
+    sortedTimes: eventData?.sortedSlots || new Map(),
+  };
 }
 
 export {
