@@ -1,4 +1,4 @@
-import { useContext, useMemo } from "react";
+import { useContext } from "react";
 import { isSameDay } from "date-fns";
 import { EventsContext } from "../context/EventsContext";
 import data from "../events.json";
@@ -20,6 +20,41 @@ const startTime = "09:00";
 const endTime = "12:00";
 const timeLimiter = 30;
 
+// Helper function to convert time to minutes since midnight
+function timeToMinutes(time) {
+  const [hours, mins] = time.split(":").map(Number);
+  return hours * 60 + mins;
+}
+
+// Convert to 12-hour format
+function formatTime(minutes) {
+  const totalMinutes = minutes % 1440; // Handle overflow past midnight
+  const hours = Math.floor(totalMinutes / 60) % 12 || 12; // Convert to 12-hour format
+  const formattedMinutes = String(totalMinutes % 60).padStart(2, "0");
+  const period = totalMinutes >= 720 ? "PM" : "AM"; // Determine AM/PM
+
+  return `${hours}:${formattedMinutes} ${period}`;
+}
+
+function createFullDay(date) {
+  const chunks = [];
+  const start = timeToMinutes(startTime);
+  const end = timeToMinutes(endTime);
+  const isToday = isSameDay(date, new Date());
+  const currentMinutes = timeToMinutes(new Date().toTimeString().slice(0, 5));
+
+  for (let i = start; i <= end - 15; i += 15) {
+    const chunkStart = i;
+    const chunkEnd = i + 15;
+
+    if (isToday && chunkStart < currentMinutes) continue;
+
+    chunks.push(`${formatTime(chunkStart)} - ${formatTime(chunkEnd)}`);
+  }
+
+  return chunks;
+}
+
 // Map out the events on the calendar with the date as the key and event(s) as the value
 function mapEvents(data) {
   const eventMap = new Map();
@@ -36,27 +71,11 @@ function mapEvents(data) {
   return eventMap;
 }
 
-// Helper function to convert time to minutes since midnight
-function timeToMinutes(time) {
-  const [hours, mins] = time.split(":").map(Number);
-  return hours * 60 + mins;
-}
-
-// Convert to 12-hour format
-const formatTime = (minutes) => {
-  const totalMinutes = minutes % 1440; // Handle overflow past midnight
-  const hours = Math.floor(totalMinutes / 60) % 12 || 12; // Convert to 12-hour format
-  const formattedMinutes = String(totalMinutes % 60).padStart(2, "0");
-  const period = totalMinutes >= 720 ? "PM" : "AM"; // Determine AM/PM
-
-  return `${hours}:${formattedMinutes} ${period}`;
-};
-
 // Function to find available 15-minute chunks & manage disabledDates
 // Create a map for organizing the available time slots by date (Date > [Slots])
 function sortDatesTimes(eventMap) {
-  const sortedSlots = new Map();
-  const newDisabledDates = [];
+  const sortedTimes = new Map();
+  const disabledDates = [];
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
   const currentMinutes = timeToMinutes(new Date().toTimeString().slice(0, 5));
@@ -97,52 +116,23 @@ function sortDatesTimes(eventMap) {
       }
     }
 
-    // Insert date into the newDisabledDates array if no available slots
+    // Insert date into the disabledDates array if no available slots
     if (chunks.length === 0) {
-      newDisabledDates.push(new Date(day));
+      disabledDates.push(new Date(day));
     } else {
-      sortedSlots.set(day, chunks);
+      sortedTimes.set(day, chunks);
     }
   }
 
   if (currentMinutes > end - timeLimiter) {
-    newDisabledDates.push(new Date());
+    disabledDates.push(new Date());
   }
 
-  return { newDisabledDates, sortedSlots };
-}
-
-function createFullDay(date) {
-  const chunks = [];
-  const start = timeToMinutes(startTime);
-  const end = timeToMinutes(endTime);
-  const isToday = isSameDay(date, new Date());
-  const currentMinutes = timeToMinutes(new Date().toTimeString().slice(0, 5));
-
-  for (let i = start; i <= end - 15; i += 15) {
-    const chunkStart = i;
-    const chunkEnd = i + 15;
-
-    if (isToday && chunkStart < currentMinutes) continue;
-
-    chunks.push(`${formatTime(chunkStart)} - ${formatTime(chunkEnd)}`);
-  }
-
-  return chunks;
+  return { disabledDates, sortedTimes };
 }
 
 function useEvents() {
   return useContext(EventsContext);
 }
 
-export {
-  maxDate,
-  startTime,
-  endTime,
-  mapEvents,
-  timeToMinutes,
-  formatTime,
-  sortDatesTimes,
-  createFullDay,
-  useEvents,
-};
+export { maxDate, mapEvents, sortDatesTimes, createFullDay, useEvents };

@@ -9,11 +9,17 @@ export default function ShowTimes() {
   const navigate = useNavigate();
   const date = new Date(Number(dateId));
   const endDate = date.toDateString();
-  const { isLoading, sortedTimes } = useEvents();
+  const { isLoading, refetch, sortedTimes } = useEvents();
 
   const getTimes = sortedTimes?.get(endDate);
-  const showTimes =
-    !isLoading && getTimes ? getTimes : isLoading ? [] : createFullDay(date);
+  const showTimes = isLoading ? [] : getTimes || createFullDay(date);
+
+  const navigateBack = () => {
+    refetch();
+    navigate("/", {
+      state: { defaultView: date },
+    });
+  };
 
   return (
     <>
@@ -30,9 +36,7 @@ export default function ShowTimes() {
         onClick={() =>
           showForm.selectedTime
             ? setShowForm({ selectedTime: false })
-            : navigate("/", {
-                state: { defaultView: date },
-              })
+            : navigateBack()
         }
       >
         Back
