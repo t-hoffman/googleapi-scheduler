@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Calendar from "react-calendar";
 import { useLocation, useNavigate } from "react-router-dom";
 import { maxDate, useEvents } from "../hooks/useEvents";

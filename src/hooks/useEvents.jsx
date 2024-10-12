@@ -157,8 +157,8 @@ function useEvents({ queryKey, endDate, date }) {
   const query = useQuery({
       queryKey,
       queryFn: getEvents,
-      refetchOnWindowFocus: false,
-      staleTime: 1000 * 15,
+      // refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 0.5,
     }),
     { data, dataUpdatedAt, isStale, isLoading } = query;
 

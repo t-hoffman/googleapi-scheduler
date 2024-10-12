@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useEvents } from "../hooks/useEvents";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function ShowTimes({ queryKey }) {
   //   console.log("<SHOWTIMES />");
   const [showForm, setShowForm] = useState({ selectedTime: false });
   const { dateId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const date = new Date(Number(dateId));
   const endDate = date.toDateString();
   const { showTimes } = useEvents({ queryKey, endDate, date });
