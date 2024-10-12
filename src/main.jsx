@@ -5,13 +5,16 @@ import { App } from "./App.jsx";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { BrowserRouter } from "react-router-dom";
+import { EventsProvider } from "./context/EventsContext.jsx";
 
 const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")).render(
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
-      <App />
+      <EventsProvider>
+        <App />
+      </EventsProvider>
     </BrowserRouter>
   </QueryClientProvider>
 );

@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useState, useMemo } from "react";
 import { useQuery } from "react-query";
+import { mapEvents, sortDatesTimes } from "../hooks/useEvents";
 
-const EventsContext = createContext();
+export const EventsContext = createContext();
 
 export function EventsProvider({ children }) {
+  console.log("<EVENTSPROVIDER />");
+
   const [eventsData, setEventsData] = useState({
     disabledDates: [],
     sortedTimes: new Map(),
@@ -20,7 +23,7 @@ export function EventsProvider({ children }) {
     staleTime: 1000 * 60 * 0.5,
   });
 
-  const { data, isStale, dataUpdatedAt, isLoading } = query;
+  const { data, isStale } = query;
 
   useMemo(() => {
     if (data?.length > 0) {
@@ -33,15 +36,11 @@ export function EventsProvider({ children }) {
         sortedTimes: sortedSlots,
       });
     }
-  }, [data, isStale]);
+  }, [data?.length, isStale]);
 
   return (
     <EventsContext.Provider value={{ ...query, ...eventsData }}>
       {children}
     </EventsContext.Provider>
   );
-}
-
-export function useEvents() {
-  return useContext(EventsContext);
 }

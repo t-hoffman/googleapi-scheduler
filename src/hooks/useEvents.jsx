@@ -1,6 +1,6 @@
-import { useMemo } from "react";
-import { useQuery } from "react-query";
+import { useContext, useMemo } from "react";
 import { isSameDay } from "date-fns";
+import { EventsContext } from "../context/EventsContext";
 import data from "../events.json";
 
 // Set maximum selection for today + end of next month
@@ -131,57 +131,8 @@ function createFullDay(date) {
   return chunks;
 }
 
-function useSortedTimes({ date, endDate, queryKey }) {
-  // console.log("<useSortedTimes />");
-
-  const query = useEvents(queryKey);
-
-  const getTimes = state.sortedTimes?.get(endDate);
-  const showTimes =
-    !query.isLoading && getTimes
-      ? getTimes
-      : state.sortedTimes && createFullDay(date);
-
-  return { ...query, showTimes };
-}
-
-function useEvents({ queryKey, endDate, date }) {
-  console.log("<useEvents />");
-
-  const getEvents = async () => {
-    const response = await fetch("http://localhost:3000/events");
-
-    return await response.json();
-  };
-
-  const query = useQuery({
-      queryKey,
-      queryFn: getEvents,
-      // refetchOnWindowFocus: false,
-      staleTime: 1000 * 60 * 0.5,
-    }),
-    { data, dataUpdatedAt, isStale, isLoading } = query;
-
-  const eventData = useMemo(() => {
-    if (data?.length > 0) {
-      const eventMap = mapEvents(data);
-      const { newDisabledDates: disabledDates, sortedSlots } =
-        sortDatesTimes(eventMap);
-
-      return { disabledDates, sortedSlots };
-    }
-  }, [dataUpdatedAt, isLoading, isStale]);
-
-  const getTimes = eventData?.sortedSlots?.get(endDate);
-  const showTimes =
-    !isLoading && getTimes ? getTimes : isLoading ? [] : createFullDay(date);
-
-  return {
-    ...query,
-    disabledDates: eventData?.disabledDates || [],
-    sortedTimes: eventData?.sortedSlots || new Map(),
-    showTimes,
-  };
+function useEvents() {
+  return useContext(EventsContext);
 }
 
 export {
@@ -194,5 +145,4 @@ export {
   sortDatesTimes,
   createFullDay,
   useEvents,
-  useSortedTimes,
 };

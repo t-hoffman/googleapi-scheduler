@@ -5,12 +5,12 @@ import { maxDate, useEvents } from "../hooks/useEvents";
 import { isBefore, isSameDay } from "date-fns";
 import "../Assets/Schedule.css";
 
-export default function Scheduler({ queryKey }) {
+export default function Scheduler() {
   // console.log("<SCHEDULER />");
   const location = useLocation();
   const defaultView = location.state?.defaultView || new Date();
   const navigate = useNavigate();
-  const { disabledDates } = useEvents({ queryKey });
+  const { disabledDates } = useEvents();
 
   const handleClick = (e) =>
     navigate(`/schedule/${e.getTime()}`, {

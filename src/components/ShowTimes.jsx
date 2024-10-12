@@ -1,15 +1,19 @@
 import React, { useState } from "react";
-import { useEvents } from "../hooks/useEvents";
 import { useNavigate, useParams } from "react-router-dom";
+import { useEvents, createFullDay } from "../hooks/useEvents";
 
-export default function ShowTimes({ queryKey }) {
+export default function ShowTimes() {
   //   console.log("<SHOWTIMES />");
   const [showForm, setShowForm] = useState({ selectedTime: false });
   const { dateId } = useParams();
   const navigate = useNavigate();
   const date = new Date(Number(dateId));
   const endDate = date.toDateString();
-  const { showTimes } = useEvents({ queryKey, endDate, date });
+  const { isLoading, sortedTimes } = useEvents();
+
+  const getTimes = sortedTimes?.get(endDate);
+  const showTimes =
+    !isLoading && getTimes ? getTimes : isLoading ? [] : createFullDay(date);
 
   return (
     <>
