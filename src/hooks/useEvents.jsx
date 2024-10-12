@@ -1,8 +1,7 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "react-query";
-import { isBefore, isSameDay } from "date-fns";
+import { isSameDay } from "date-fns";
 import data from "../events.json";
-import { ScheduleContext } from "../context/ScheduleContext";
 
 // Set maximum selection for today + end of next month
 const today = new Date();
@@ -110,14 +109,6 @@ function sortDatesTimes(eventMap) {
     newDisabledDates.push(new Date());
   }
 
-  // console.log("setState in sortDatesTimes");
-
-  // setState((prevState) => ({
-  //   ...prevState,
-  //   disabledDates: newnewDisabledDates,
-  //   sortedTimes: sortedSlots,
-  // }));
-
   return { newDisabledDates, sortedSlots };
 }
 
@@ -142,7 +133,7 @@ function createFullDay(date) {
 
 function useSortedTimes({ date, endDate, queryKey }) {
   // console.log("<useSortedTimes />");
-  // const { state } = useContext(ScheduleContext);
+
   const query = useEvents(queryKey);
 
   const getTimes = state.sortedTimes?.get(endDate);
@@ -154,13 +145,8 @@ function useSortedTimes({ date, endDate, queryKey }) {
   return { ...query, showTimes };
 }
 
-function useEvents({ queryKey, getSortedTimes }) {
+function useEvents({ queryKey, endDate, date }) {
   console.log("<useEvents />");
-
-  // const { state, setState } = useContext(ScheduleContext);
-
-  // const [disabledDates, setDisabledDates] = useState([]);
-  // const [sortedTimes, setSortedTimes] = useState(new Map());
 
   const getEvents = async () => {
     const response = await fetch("http://localhost:3000/events");
@@ -178,42 +164,23 @@ function useEvents({ queryKey, getSortedTimes }) {
 
   const eventData = useMemo(() => {
     if (data?.length > 0) {
-      // console.log("INSIDE useEffect () => (useEvents)");
-      // console.log(data, isStale, sortedTimes);
-
       const eventMap = mapEvents(data);
       const { newDisabledDates: disabledDates, sortedSlots } =
         sortDatesTimes(eventMap);
 
       return { disabledDates, sortedSlots };
     }
-  }, [data, dataUpdatedAt, isLoading, isStale]);
+  }, [dataUpdatedAt, isLoading, isStale]);
 
-  // console.log(eventData);
-
-  // useEffect(() => {
-  //   if (data?.length > 0 && (!sortedTimes.size || isStale)) {
-  //     // console.log("INSIDE useEffect () => (useEvents)");
-  //     // console.log(data, isStale, sortedTimes);
-
-  //     const eventMap = mapEvents(data);
-  //     const { newDisabledDates, sortedSlots } = sortDatesTimes(eventMap);
-
-  //     setDisabledDates(newDisabledDates);
-  //     setSortedTimes(sortedSlots);
-  //   }
-  // }, [data, dataUpdatedAt, isLoading, isStale]);
-
-  // return {
-  //   ...query,
-  //   disabledDates,
-  //   sortedTimes,
-  // };
+  const getTimes = eventData?.sortedSlots?.get(endDate);
+  const showTimes =
+    !isLoading && getTimes ? getTimes : isLoading ? [] : createFullDay(date);
 
   return {
     ...query,
     disabledDates: eventData?.disabledDates || [],
     sortedTimes: eventData?.sortedSlots || new Map(),
+    showTimes,
   };
 }
 

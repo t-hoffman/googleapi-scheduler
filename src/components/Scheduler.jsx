@@ -1,18 +1,12 @@
-import React, { useContext, useEffect, useState } from "react";
+import React from "react";
 import Calendar from "react-calendar";
-import "../Assets/Schedule.css";
 import { useNavigate } from "react-router-dom";
-import { ScheduleContext } from "../context/ScheduleContext";
 import { maxDate, useEvents } from "../hooks/useEvents";
 import { isBefore, isSameDay } from "date-fns";
+import "../Assets/Schedule.css";
 
 export default function Scheduler({ queryKey }) {
   // console.log("<SCHEDULER />");
-
-  // const {
-  //   state,
-  //   state: { disabledDates },
-  // } = useContext(ScheduleContext);
 
   const navigate = useNavigate();
 
