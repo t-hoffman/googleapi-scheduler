@@ -16,8 +16,8 @@ export function EventsProvider({ children }) {
       queryKey: ["events"],
       queryFn: getEvents,
       staleTime: 1000 * 60 * 1,
-      refetchOnWindowFocus: true,
-      refetchOnReconnect: true,
+      // refetchOnWindowFocus: true,
+      // refetchOnReconnect: true,
     }),
     { data, isStale, refetch } = query;
 

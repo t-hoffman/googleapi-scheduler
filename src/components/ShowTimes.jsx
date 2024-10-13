@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEvents, createFullDay } from "../hooks/useEvents";
+import ScheduleForm from "./ScheduleForm";
 
 export default function ShowTimes() {
   //   console.log("<SHOWTIMES />");
   const [showForm, setShowForm] = useState({ selectedTime: false });
   const { dateId } = useParams();
   const navigate = useNavigate();
+
   const date = new Date(Number(dateId));
   const endDate = date.toDateString();
   const { isLoading, refetch, sortedTimes } = useEvents();
@@ -29,7 +31,9 @@ export default function ShowTimes() {
           <TimeList showTimes={showTimes} setShowForm={setShowForm} />
         </>
       )}
-      {showForm.selectedTime && <ShowForm date={date} showForm={showForm} />}
+      {showForm.selectedTime && (
+        <ScheduleForm date={date} selectedTime={showForm.selectedTime} />
+      )}
       <p>&nbsp;</p>
       <button
         className="btn btn-secondary"
@@ -66,14 +70,5 @@ function TimeList({ showTimes, setShowForm }) {
         );
       })}
     </ul>
-  );
-}
-
-function ShowForm({ date, showForm: { selectedTime } }) {
-  return (
-    <h1>
-      Form for {date.toDateString()}
-      <br /> @{selectedTime}
-    </h1>
   );
 }

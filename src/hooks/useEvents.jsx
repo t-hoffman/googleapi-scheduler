@@ -1,7 +1,8 @@
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { isSameDay } from "date-fns";
 import { EventsContext } from "../context/EventsContext";
 import data from "../events.json";
+import { useLocation } from "react-router-dom";
 
 // Set maximum selection for today + end of next month
 const today = new Date();
@@ -33,7 +34,7 @@ function formatTime(minutes) {
   const formattedMinutes = String(totalMinutes % 60).padStart(2, "0");
   const period = totalMinutes >= 720 ? "PM" : "AM"; // Determine AM/PM
 
-  return `${hours}:${formattedMinutes} ${period}`;
+  return `${hours}:${formattedMinutes}${period}`;
 }
 
 function createFullDay(date) {
@@ -132,6 +133,13 @@ function sortDatesTimes(eventMap) {
 }
 
 function useEvents() {
+  // const eventContext = useContext(EventsContext);
+  // const location = useLocation();
+
+  // useEffect(() => {
+  //   eventContext.refetch();
+  // }, [location.pathname]);
+
   return useContext(EventsContext);
 }
 
