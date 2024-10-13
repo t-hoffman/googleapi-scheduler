@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useEvents, createFullDay } from "../hooks/useEvents";
 import ScheduleForm from "./ScheduleForm";
+import { isSameDay } from "date-fns";
 
 export default function ShowTimes() {
   //   console.log("<SHOWTIMES />");
@@ -11,13 +12,30 @@ export default function ShowTimes() {
 
   const date = new Date(Number(dateId));
   const endDate = date.toDateString();
-  const { isLoading, refetch, sortedTimes } = useEvents();
+  const { disabledDates, isLoading, refetch, sortedTimes } = useEvents();
 
-  const getTimes = sortedTimes?.get(endDate);
-  const showTimes = isLoading ? [] : getTimes || createFullDay(date);
+  const getShowTimes = () => {
+    const getTimes = sortedTimes?.get(endDate);
+    const isDisabled = disabledDates.find((dDate) => isSameDay(dDate, date));
+
+    if (getTimes || isLoading) {
+      return getTimes || [];
+    }
+
+    if (isDisabled) {
+      return false;
+    } else if (!isDisabled) {
+      return createFullDay(date);
+    }
+
+    return [];
+  };
+
+  const showTimes = getShowTimes();
 
   const navigateBack = () => {
     refetch();
+
     navigate("/", {
       state: { defaultView: date },
     });
@@ -32,7 +50,11 @@ export default function ShowTimes() {
         </>
       )}
       {showForm.selectedTime && (
-        <ScheduleForm date={date} selectedTime={showForm.selectedTime} />
+        <ScheduleForm
+          date={date}
+          selectedTime={showForm.selectedTime}
+          refetch={refetch}
+        />
       )}
       <p>&nbsp;</p>
       <button
@@ -50,10 +72,20 @@ export default function ShowTimes() {
 }
 
 function TimeList({ showTimes, setShowForm }) {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!showTimes) navigate("/");
+  }, [showTimes]);
+
+  if (!showTimes) {
+    return null;
+  }
+
   return (
     <ul style={{ listStyle: "none" }}>
-      {showTimes?.map((time, idx) => {
-        return (
+      {showTimes.length > 0 ? (
+        showTimes.map((time, idx) => (
           <li className="mt-3" key={idx}>
             <button
               className="btn btn-primary"
@@ -67,8 +99,15 @@ function TimeList({ showTimes, setShowForm }) {
               {time}
             </button>
           </li>
-        );
-      })}
+        ))
+      ) : showTimes.length === 0 ? (
+        <>Loading ...</>
+      ) : (
+        <>
+          <h3>Sorry, but there are no more times left.</h3>If you are not
+          automatically redirected please <Link to="/">click here</Link>.
+        </>
+      )}
     </ul>
   );
 }

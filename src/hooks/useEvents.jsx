@@ -1,8 +1,7 @@
-import { useContext, useEffect } from "react";
+import { useContext } from "react";
 import { isSameDay } from "date-fns";
 import { EventsContext } from "../context/EventsContext";
 import data from "../events.json";
-import { useLocation } from "react-router-dom";
 
 // Set maximum selection for today + end of next month
 const today = new Date();
@@ -35,6 +34,27 @@ function formatTime(minutes) {
   const period = totalMinutes >= 720 ? "PM" : "AM"; // Determine AM/PM
 
   return `${hours}:${formattedMinutes}${period}`;
+}
+
+// Set the time on the Date object and return timestamp from selectedTime slot
+function setTimeOnDate(date, selectedTime) {
+  const createDateTime = (timeStr) => {
+    const period = timeStr.slice(-2);
+    const time = timeStr.slice(0, -2);
+    let [hours, minutes] = time.split(":").map(Number); // Extract hours and minutes
+    if (period === "PM" && hours !== 12) hours += 12; // Convert to 24-hour format
+    if (period === "AM" && hours === 12) hours = 0; // Handle midnight case
+
+    const newDate = new Date(date); // Create a copy of the date
+    newDate.setHours(hours, minutes, 0, 0); // Set hours, minutes, and reset seconds/milliseconds
+    return newDate.getTime();
+  };
+
+  const [start, end] = selectedTime.split(" - "); // Split start and end times
+  return {
+    startDate: createDateTime(start),
+    endDate: createDateTime(end),
+  };
 }
 
 function createFullDay(date) {
@@ -133,14 +153,14 @@ function sortDatesTimes(eventMap) {
 }
 
 function useEvents() {
-  // const eventContext = useContext(EventsContext);
-  // const location = useLocation();
-
-  // useEffect(() => {
-  //   eventContext.refetch();
-  // }, [location.pathname]);
-
   return useContext(EventsContext);
 }
 
-export { maxDate, mapEvents, sortDatesTimes, createFullDay, useEvents };
+export {
+  createFullDay,
+  mapEvents,
+  maxDate,
+  setTimeOnDate,
+  sortDatesTimes,
+  useEvents,
+};

@@ -1,5 +1,7 @@
 import { format } from "date-fns";
 import React, { useState } from "react";
+import { setTimeOnDate } from "../hooks/useEvents";
+import { useMutation } from "react-query";
 
 const initialState = {
   firstName: "",
@@ -18,8 +20,12 @@ const formatPhoneNumber = (number) => {
   return formatted;
 };
 
-export default function ScheduleForm({ date, selectedTime }) {
+export default function ScheduleForm({ date, selectedTime, refetch }) {
   const [state, setState] = useState(initialState);
+
+  /*
+        COMPLETE SECURTIY/VERIFICATIONS OF FORMDATA
+  */
 
   const formattedDate = format(date, "EEEE LLL do");
 
@@ -51,15 +57,46 @@ export default function ScheduleForm({ date, selectedTime }) {
     setState({ ...state, [name]: updatedValue });
   };
 
+  const mutation = useMutation(
+    async (eventData) => {
+      const response = await fetch("http://192.168.0.3:3000/events/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(eventData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit event.");
+      }
+
+      return response.json();
+    },
+    {
+      onSuccess: (data) => {
+        refetch();
+        console.log("Form successfully submitted: ", data);
+      },
+      onError: (error) => {
+        console.error("Form submission failed:", error.message);
+      },
+    }
+  );
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const { firstName, lastName, email, phoneNumber } = state;
-    const [first, second] = selectedTime.split(" - ");
-    const title = `CONSULT [${first}-${second}]: ${firstName} ${lastName}, ${formatPhoneNumber(
-      phoneNumber
-    )} - ${email}`;
-    console.log(title);
+    const { firstName, lastName, email, phoneNumber } = state,
+      { startDate, endDate } = setTimeOnDate(date, selectedTime),
+      [start, end] = selectedTime.split(" - "),
+      summary = `CONSULT [${start}-${end}]: ${firstName} ${lastName} - ${formatPhoneNumber(
+        phoneNumber
+      )} - ${email}`;
+
+    mutation.mutate({ startDate, endDate, summary });
+
+    console.log(summary);
   };
 
   return (
@@ -86,10 +123,24 @@ export default function ScheduleForm({ date, selectedTime }) {
         </div>
       ))}
       <div className="w-100 text-center pt-3">
-        <button className="btn btn-warning" onClick={handleSubmit}>
-          Submit
+        <button
+          className="btn btn-warning"
+          onClick={handleSubmit}
+          disabled={mutation.isLoading}
+        >
+          {mutation.isLoading ? "Submitting..." : "Submit"}
         </button>
       </div>
+      {mutation.isError && (
+        <p>
+          <b style={{ color: "red" }}>Error: {mutation.error.message}</b>
+        </p>
+      )}
+      {mutation.isSuccess && (
+        <p>
+          <b style={{ color: "green" }}>Form submitted successfully!</b>
+        </p>
+      )}
     </form>
   );
 }
