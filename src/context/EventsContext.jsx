@@ -15,7 +15,7 @@ export function EventsProvider({ children }) {
   const query = useQuery({
       queryKey: ["events"],
       queryFn: getEvents,
-      staleTime: 1000 * 60 * 1,
+      staleTime: 1000 * 60 * 10,
       // refetchOnWindowFocus: true,
       // refetchOnReconnect: true,
     }),
@@ -24,8 +24,8 @@ export function EventsProvider({ children }) {
   const eventsData = useMemo(() => {
     if (data?.length > 0) {
       const eventMap = mapEvents(data);
-      const { disabledDates, sortedTimes } = sortDatesTimes(eventMap);
-      return { disabledDates, sortedTimes };
+
+      return sortDatesTimes(eventMap);
     }
 
     return { disabledDates: [], sortedTimes: new Map() };

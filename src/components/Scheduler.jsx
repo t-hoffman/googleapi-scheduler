@@ -1,8 +1,9 @@
 import React, { useEffect } from "react";
 import Calendar from "react-calendar";
 import { useLocation, useNavigate } from "react-router-dom";
-import { maxDate, useEvents } from "../hooks/useEvents";
+import { maxDate, timeZone, useEvents } from "../hooks/useEvents";
 import { isBefore, isSameDay } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import "../Assets/Schedule.css";
 
 export default function Scheduler() {
@@ -12,10 +13,11 @@ export default function Scheduler() {
   const navigate = useNavigate();
   const { disabledDates } = useEvents();
 
-  const handleClick = (e) =>
+  const handleClick = (e) => {
     navigate(`/schedule/${e.getTime()}`, {
       state: { defaultView },
     });
+  };
 
   const tileDisabled = ({ date, view }) =>
     view === "month" && disabledDates.find((dDate) => isSameDay(dDate, date));
@@ -47,7 +49,7 @@ export default function Scheduler() {
       <h2>Please select a time:</h2>
       <Calendar
         maxDate={maxDate}
-        minDate={new Date()}
+        minDate={toZonedTime(new Date(), timeZone)}
         onChange={handleClick}
         tileClassName={tileClassName}
         tileDisabled={tileDisabled}

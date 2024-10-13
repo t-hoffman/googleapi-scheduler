@@ -11,11 +11,11 @@ export default function ShowTimes() {
   const navigate = useNavigate();
 
   const date = new Date(Number(dateId));
-  const endDate = date.toDateString();
+  const selectedDate = date.toDateString();
   const { disabledDates, isLoading, refetch, sortedTimes } = useEvents();
 
   const getShowTimes = () => {
-    const getTimes = sortedTimes?.get(endDate);
+    const getTimes = sortedTimes?.get(selectedDate);
     const isDisabled = disabledDates.find((dDate) => isSameDay(dDate, date));
 
     if (getTimes || isLoading) {
@@ -45,7 +45,7 @@ export default function ShowTimes() {
     <>
       {!showForm.selectedTime && (
         <>
-          <h1>ShowTimes for {date.toDateString()}</h1>
+          <h1>ShowTimes for {selectedDate}</h1>
           <TimeList showTimes={showTimes} setShowForm={setShowForm} />
         </>
       )}

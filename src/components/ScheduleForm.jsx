@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import React, { useState } from "react";
-import { setTimeOnDate } from "../hooks/useEvents";
+import { setTimeOnDate, userTimeZone } from "../hooks/useEvents";
 import { useMutation } from "react-query";
 
 const initialState = {
@@ -10,11 +10,10 @@ const initialState = {
   phoneNumber: "",
 };
 
+// Format the number as (123) 456-7890
 const formatPhoneNumber = (number) => {
   // Ensure the input is a string and only contains numbers
   const cleaned = ("" + number).replace(/\D/g, "");
-
-  // Format the number as (123) 456-7890
   const formatted = cleaned.replace(/^(\d{3})(\d{3})(\d{4})$/, "($1) $2-$3");
 
   return formatted;
@@ -94,9 +93,11 @@ export default function ScheduleForm({ date, selectedTime, refetch }) {
         phoneNumber
       )} - ${email}`;
 
-    mutation.mutate({ startDate, endDate, summary });
+    console.log(startDate.toString());
 
-    console.log(summary);
+    mutation.mutate({ startDate, endDate, summary, timeZone: userTimeZone });
+
+    // console.log(summary, startDate, endDate);
   };
 
   return (
