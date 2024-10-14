@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { isSameDay } from "date-fns";
+import { isSameDay, setHours, setMinutes } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 import { EventsContext } from "../context/EventsContext";
 
@@ -8,8 +8,8 @@ const scheduleConfig = {
   startTime: "09:00",
   endTime: "12:00",
   openSaturday: true,
-  openSunday: true,
-  timeBuffer: 30,
+  openSunday: false,
+  timeBuffer: 30, // Buffer time before/after events
   timeZone: "America/Los_Angeles",
   userTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 };
@@ -23,7 +23,7 @@ const {
   userTimeZone,
 } = scheduleConfig;
 
-// Set maximum selection for today + end of next month
+// Maximum selection for today + end of next month
 const today = new Date();
 const maxDate = new Date(
   today.getFullYear(),
@@ -34,70 +34,64 @@ const maxDate = new Date(
   59
 );
 
-// Set the time on the Date object and return timestamp from selectedTime slot
+// Utility: Convert time string ("HH:mm") to total minutes since midnight
+const timeToMinutes = (time) => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+// Utility: Convert minutes to a 12-hour format ("HH:mm AM/PM")
+const minutesToTimeString = (minutes) => {
+  const hours = Math.floor(minutes / 60) % 12 || 12;
+  const mins = String(minutes % 60).padStart(2, "0");
+  const period = minutes >= 720 ? "PM" : "AM";
+  return `${hours}:${mins}${period}`;
+};
+
+// Set time on a specific date and adjust for time zone differences
 function setTimeOnDate(date, selectedTime) {
-  const [start, end] = selectedTime.split(" - "); // Split start and end times
+  const [start, end] = selectedTime.split(" - ");
 
-  const createDateTime = (timeStr) => {
-    const time = timeStr.slice(0, -2);
-    const period = timeStr.slice(-2);
-    let [hours, minutes] = time.split(":").map(Number); // Extract hours and minutes
+  const parseTime = (timeStr) => {
+    const time = timeStr.slice(0, -2); // Extract "HH:mm"
+    const period = timeStr.slice(-2); // Extract "AM/PM"
+    let [hours, minutes] = time.split(":").map(Number);
 
-    if (period === "PM" && hours !== 12) hours += 12; // Convert to 24-hour format
-    if (period === "AM" && hours === 12) hours = 0; // Handle midnight case
+    if (period === "PM" && hours !== 12) hours += 12;
+    if (period === "AM" && hours === 12) hours = 0;
 
-    const newDate = new Date(date); // Create a copy of the date
-    newDate.setHours(hours, minutes, 0, 0); // Set hours, minutes, and reset seconds/milliseconds
-
-    if (userTimeZone !== timeZone) {
-      const zonedTime = fromZonedTime(newDate, timeZone);
-      return zonedTime.toISOString();
-    }
-
-    return newDate.toISOString();
+    const newDate = setMinutes(setHours(new Date(date), hours), minutes);
+    return userTimeZone !== timeZone
+      ? fromZonedTime(newDate, timeZone).toISOString()
+      : newDate.toISOString();
   };
 
   return {
-    startDate: createDateTime(start),
-    endDate: createDateTime(end),
+    startDate: parseTime(start),
+    endDate: parseTime(end),
   };
 }
 
-// Helper function to convert time to minutes since midnight
-function timeToMinutes(time) {
-  const [hours, mins] = time.split(":").map(Number);
-  return hours * 60 + mins;
-}
-
-// Convert to 12-hour format
-function timeToHours(minutes) {
-  const totalMinutes = minutes % 1440; // Handle overflow past midnight
-  const hours = Math.floor(totalMinutes / 60) % 12 || 12; // Convert to 12-hour format
-  const formattedMinutes = String(totalMinutes % 60).padStart(2, "0");
-  const period = totalMinutes >= 720 ? "PM" : "AM"; // Determine AM/PM
-
-  return `${hours}:${formattedMinutes}${period}`;
-}
-
+// Create available time slots for a specific day
 function createFullDay(date) {
-  const chunks = [];
+  const slots = [];
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
-  const isToday = isSameDay(date, new Date());
   const currentMinutes = timeToMinutes(
     formatInTimeZone(new Date(), timeZone, "HH:mm")
   );
+  const isToday = isSameDay(date, today);
 
   for (let i = start; i <= end - 15; i += 15) {
     if (isToday && i < currentMinutes) continue;
-    chunks.push(`${timeToHours(i)} - ${timeToHours(i + 15)}`);
+    slots.push(`${minutesToTimeString(i)} - ${minutesToTimeString(i + 15)}`);
   }
 
-  return chunks;
+  return slots;
 }
 
-// Map out the events on the calendar with the date as the key and event(s) as the value
-const mapEvents = (events) => {
+// Map events to their respective dates (date as key, events as value)
+function mapEvents(events) {
   const eventMap = new Map();
 
   events?.forEach((event) => {
@@ -105,76 +99,74 @@ const mapEvents = (events) => {
       new Date(event.end.dateTime || event.end.date),
       timeZone
     ).toDateString();
-
     eventMap.set(endDate, [...(eventMap.get(endDate) || []), event]);
   });
 
   return eventMap;
-};
+}
 
-// Function to find available 15-minute chunks & manage disabledDates
-// Create a map for organizing the available time slots by date (Date > [Slots])
+// Find available 15-minute chunks and manage disabled dates
 function sortDatesTimes(eventMap) {
   const sortedTimes = new Map();
   const disabledDates = [];
-  const start = timeToMinutes(startTime);
-  const end = timeToMinutes(endTime);
-  const endMinutes = end - timeBuffer;
+  const endBufferMinutes = timeToMinutes(endTime) - timeBuffer;
   const currentMinutes = timeToMinutes(
     formatInTimeZone(new Date(), timeZone, "HH:mm")
   );
 
   eventMap.forEach((events, day) => {
-    const chunks = [];
+    const slots = [];
     const isToday = isSameDay(day, toZonedTime(new Date(), timeZone));
 
-    // Create an array of booked times
     const bookedTimes = events.map((event) => ({
-      start: event.start.dateTime
-        ? timeToMinutes(
+      start: event.start.date
+        ? timeToMinutes(startTime)
+        : timeToMinutes(
             formatInTimeZone(event.start.dateTime, timeZone, "HH:mm")
-          )
-        : start,
-      end: event.end.dateTime
-        ? timeToMinutes(formatInTimeZone(event.end.dateTime, timeZone, "HH:mm"))
-        : end,
+          ),
+      end: event.end.date
+        ? timeToMinutes(endTime)
+        : timeToMinutes(
+            formatInTimeZone(event.end.dateTime, timeZone, "HH:mm")
+          ),
     }));
 
-    // Check each 15-minute slot
-    for (let i = start; i <= end - 15; i += 15) {
-      // Skip past chunks if today or in the past
-      if (
-        isToday &&
-        (i <= currentMinutes || i - currentMinutes <= timeBuffer)
-      ) {
+    for (
+      let i = timeToMinutes(startTime);
+      i <= timeToMinutes(endTime) - 15;
+      i += 15
+    ) {
+      if (isToday && (i <= currentMinutes || i - currentMinutes <= timeBuffer))
         continue;
-      }
 
-      // Check for overlaps with booked times
       const isAvailable = !bookedTimes.some(
         (e) => i < e.end && i + 15 > e.start
       );
 
-      if (isAvailable) {
-        chunks.push(`${timeToHours(i)} - ${timeToHours(i + 15)}`);
-      }
+      if (isAvailable)
+        slots.push(
+          `${minutesToTimeString(i)} - ${minutesToTimeString(i + 15)}`
+        );
     }
 
-    // Insert date into the disabledDates array if no available slots
-    if (chunks.length === 0) {
+    if (slots.length === 0) {
       disabledDates.push(new Date(day));
     } else {
-      sortedTimes.set(day, chunks);
+      sortedTimes.set(day, slots);
     }
   });
 
-  if (currentMinutes > endMinutes || endMinutes - currentMinutes <= 15) {
+  if (
+    currentMinutes >= endBufferMinutes ||
+    endBufferMinutes - currentMinutes <= 15
+  ) {
     disabledDates.push(toZonedTime(new Date(), timeZone));
   }
 
   return { disabledDates, sortedTimes };
 }
 
+// Hook to access events
 const useEvents = () => useContext(EventsContext);
 
 export {
