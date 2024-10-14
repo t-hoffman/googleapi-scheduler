@@ -5,7 +5,7 @@ import { EventsContext } from "../context/EventsContext";
 
 // Set disabled dates array & start/end time
 const startTime = "09:00";
-const endTime = "12:00";
+const endTime = "23:55";
 const timeBuffer = 30;
 const timeZone = "America/Los_Angeles";
 const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -121,10 +121,10 @@ function sortDatesTimes(eventMap) {
         ? timeToMinutes(
             formatInTimeZone(event.start.dateTime, timeZone, "HH:mm")
           )
-        : timeToMinutes(startTime),
+        : start,
       end: event.end.dateTime
         ? timeToMinutes(formatInTimeZone(event.end.dateTime, timeZone, "HH:mm"))
-        : timeToMinutes(endTime),
+        : end,
     }));
 
     // Check each 15-minute slot

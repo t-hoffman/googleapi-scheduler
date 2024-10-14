@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import Calendar from "react-calendar";
 import { useLocation, useNavigate } from "react-router-dom";
-import { maxDate, timeZone, useEvents } from "../hooks/useEvents";
+import { maxDate, timeZone, useEvents, userTimeZone } from "../hooks/useEvents";
 import { isBefore, isSameDay } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 
@@ -23,9 +23,15 @@ export default function Scheduler() {
 
   const tileClassName = ({ date, view }) => {
     if (view === "month") {
+      const today = new Date();
+      const zonedDate =
+        userTimeZone !== timeZone
+          ? toZonedTime(today.setDate(today.getDate() - 1), timeZone)
+          : today.setDate(today.getDate() - 1);
+
       if (
         !disabledDates.find((hDate) => isSameDay(hDate, date)) &&
-        isBefore(new Date().setDate(new Date().getDate() - 1), date) &&
+        isBefore(zonedDate, date) &&
         isBefore(date, maxDate)
       ) {
         return "btn btn-primary border-3 border-dark";
