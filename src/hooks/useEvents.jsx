@@ -3,12 +3,25 @@ import { isSameDay } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 import { EventsContext } from "../context/EventsContext";
 
-// Set disabled dates array & start/end time
-const startTime = "09:00";
-const endTime = "23:55";
-const timeBuffer = 30;
-const timeZone = "America/Los_Angeles";
-const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+// Scheduler configuration settings
+const scheduleConfig = {
+  startTime: "09:00",
+  endTime: "12:00",
+  openSaturday: true,
+  openSunday: true,
+  timeBuffer: 30,
+  timeZone: "America/Los_Angeles",
+  userTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+};
+const {
+  startTime,
+  endTime,
+  openSaturday,
+  openSunday,
+  timeBuffer,
+  timeZone,
+  userTimeZone,
+} = scheduleConfig;
 
 // Set maximum selection for today + end of next month
 const today = new Date();
@@ -168,6 +181,8 @@ export {
   createFullDay,
   mapEvents,
   maxDate,
+  openSaturday,
+  openSunday,
   setTimeOnDate,
   sortDatesTimes,
   timeZone,

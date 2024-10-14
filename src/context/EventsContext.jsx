@@ -15,7 +15,7 @@ export function EventsProvider({ children }) {
   const query = useQuery({
       queryKey: ["events"],
       queryFn: getEvents,
-      staleTime: 1000 * 60 * 10,
+      staleTime: 1000 * 60 * 1,
       // refetchOnWindowFocus: true,
       // refetchOnReconnect: true,
     }),

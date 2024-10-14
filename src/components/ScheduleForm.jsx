@@ -115,6 +115,7 @@ export default function ScheduleForm({ date, selectedTime, refetch }) {
               value={state[field.name]}
               autoCapitalize={field.autoCapitalize ? "on" : "off"}
               style={field.autoCapitalize && { textTransform: "capitalize" }}
+              autoComplete="on"
             />
           </div>
         </div>
