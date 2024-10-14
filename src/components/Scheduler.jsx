@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { maxDate, timeZone, useEvents } from "../hooks/useEvents";
 import { isBefore, isSameDay } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
-import "../Assets/Schedule.css";
 
 export default function Scheduler() {
   // console.log("<SCHEDULER />");

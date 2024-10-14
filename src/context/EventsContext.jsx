@@ -8,7 +8,7 @@ export function EventsProvider({ children }) {
   console.log("<EVENTSPROVIDER />");
 
   const getEvents = async () => {
-    const response = await fetch("http://192.168.0.3:3000/events");
+    const response = await fetch("/api/events/");
     return await response.json();
   };
 

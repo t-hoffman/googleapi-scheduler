@@ -2,7 +2,6 @@ import { useContext } from "react";
 import { isSameDay } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 import { EventsContext } from "../context/EventsContext";
-import data from "../events.json";
 
 // Set disabled dates array & start/end time
 const startTime = "09:00";
@@ -10,23 +9,6 @@ const endTime = "12:00";
 const timeBuffer = 30;
 const timeZone = "America/Los_Angeles";
 const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-// console.log(formatInTimeZone(new Date(), timeZone, "yyyy-MM-dd HH:mm:ss XXX"));
-
-// My laptop's time zone: NYC
-// Shows current time in LA
-// console.log(new Date().toLocaleString("en-us", { timeZone }));
-
-// Shows time (in NYC time, local machine time) it would be for the date given
-// const toZoned = toZonedTime(new Date().setHours(11, 45), timeZone);
-// console.log(toZoned.toString());
-// console.log(toZoned.toISOString());
-// console.log(format(toZoned, "yyyy-MM-dd HH:mm:ss XXX"));
-// console.log(formatInTimeZone(new Date(), timeZone, "yyyy-MM-dd HH:mm:ss XXX"));
-
-// Shows what time in NYC time if now() was the LA time
-// e.g. right now it is 5pm NYC, so this displays the NYC time if it were 5pm in LA
-// console.log(fromZonedTime(new Date(), timeZone));
 
 // Set maximum selection for today + end of next month
 const today = new Date();
@@ -55,7 +37,6 @@ function setTimeOnDate(date, selectedTime) {
     newDate.setHours(hours, minutes, 0, 0); // Set hours, minutes, and reset seconds/milliseconds
 
     if (userTimeZone !== timeZone) {
-      console.log("NOT LA TIME ZONE !!");
       const zonedTime = fromZonedTime(newDate, timeZone);
       return zonedTime.toISOString();
     }
@@ -76,7 +57,7 @@ function timeToMinutes(time) {
 }
 
 // Convert to 12-hour format
-function formatTime(minutes) {
+function timeToHours(minutes) {
   const totalMinutes = minutes % 1440; // Handle overflow past midnight
   const hours = Math.floor(totalMinutes / 60) % 12 || 12; // Convert to 12-hour format
   const formattedMinutes = String(totalMinutes % 60).padStart(2, "0");
@@ -96,7 +77,7 @@ function createFullDay(date) {
 
   for (let i = start; i <= end - 15; i += 15) {
     if (isToday && i < currentMinutes) continue;
-    chunks.push(`${formatTime(i)} - ${formatTime(i + 15)}`);
+    chunks.push(`${timeToHours(i)} - ${timeToHours(i + 15)}`);
   }
 
   return chunks;
@@ -136,12 +117,14 @@ function sortDatesTimes(eventMap) {
 
     // Create an array of booked times
     const bookedTimes = events.map((event) => ({
-      start: timeToMinutes(
-        formatInTimeZone(new Date(event.start.dateTime), timeZone, "HH:mm")
-      ),
-      end: timeToMinutes(
-        formatInTimeZone(new Date(event.end.dateTime), timeZone, "HH:mm")
-      ),
+      start: event.start.dateTime
+        ? timeToMinutes(
+            formatInTimeZone(event.start.dateTime, timeZone, "HH:mm")
+          )
+        : timeToMinutes(startTime),
+      end: event.end.dateTime
+        ? timeToMinutes(formatInTimeZone(event.end.dateTime, timeZone, "HH:mm"))
+        : timeToMinutes(endTime),
     }));
 
     // Check each 15-minute slot
@@ -160,7 +143,7 @@ function sortDatesTimes(eventMap) {
       );
 
       if (isAvailable) {
-        chunks.push(`${formatTime(i)} - ${formatTime(i + 15)}`);
+        chunks.push(`${timeToHours(i)} - ${timeToHours(i + 15)}`);
       }
     }
 

@@ -58,7 +58,7 @@ export default function ScheduleForm({ date, selectedTime, refetch }) {
 
   const mutation = useMutation(
     async (eventData) => {
-      const response = await fetch("http://192.168.0.3:3000/events/add", {
+      const response = await fetch("/api/events/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,11 +93,7 @@ export default function ScheduleForm({ date, selectedTime, refetch }) {
         phoneNumber
       )} - ${email}`;
 
-    console.log(startDate.toString());
-
     mutation.mutate({ startDate, endDate, summary, timeZone: userTimeZone });
-
-    // console.log(summary, startDate, endDate);
   };
 
   return (
