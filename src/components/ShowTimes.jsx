@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useEvents, createFullDay } from "../hooks/useEvents";
+import { useEvents, createFullDay, getShowTimes } from "../hooks/useEvents";
 import ScheduleForm from "./ScheduleForm";
 import { isSameDay } from "date-fns";
 
@@ -12,26 +12,10 @@ export default function ShowTimes() {
 
   const date = new Date(Number(dateId));
   const selectedDate = date.toDateString();
-  const { disabledDates, isLoading, refetch, sortedTimes } = useEvents();
+  const query = useEvents();
+  const { disabledDates, isLoading, sortedTimes } = query;
 
-  const getShowTimes = () => {
-    const timesForDate = sortedTimes?.get(selectedDate) || [];
-    const isDisabled = disabledDates.some((dDate) => isSameDay(dDate, date));
-
-    if (isDisabled) return false; // Return false if the date is disabled
-    if (isLoading) return timesForDate; // Return times or empty array if loading
-    return timesForDate.length ? timesForDate : createFullDay(date); // Return times or full day
-  };
-
-  const showTimes = getShowTimes();
-
-  const navigateBack = () => {
-    refetch();
-
-    navigate("/", {
-      state: { defaultView: date },
-    });
-  };
+  const showTimes = getShowTimes(selectedDate, query);
 
   return (
     <>
@@ -42,11 +26,7 @@ export default function ShowTimes() {
         </>
       )}
       {showForm.selectedTime && (
-        <ScheduleForm
-          date={date}
-          selectedTime={showForm.selectedTime}
-          refetch={refetch}
-        />
+        <ScheduleForm date={date} selectedTime={showForm.selectedTime} />
       )}
       <p>&nbsp;</p>
       <button
@@ -54,7 +34,9 @@ export default function ShowTimes() {
         onClick={() =>
           showForm.selectedTime
             ? setShowForm({ selectedTime: false })
-            : navigateBack()
+            : navigate("/", {
+                state: { defaultView: date },
+              })
         }
       >
         Back

@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import React, { useState } from "react";
 import { setTimeOnDate, userTimeZone } from "../hooks/useEvents";
-import { useMutation } from "react-query";
+import { useMutation, useQueryClient } from "react-query";
 
 const initialState = {
   firstName: "",
@@ -19,8 +19,34 @@ const formatPhoneNumber = (number) => {
   return formatted;
 };
 
-export default function ScheduleForm({ date, selectedTime, refetch }) {
+const validateFormData = (data) => {
+  const { firstName, lastName, email, phoneNumber } = data;
+  const errors = [];
+  const errorParams = {};
+
+  if (!firstName || firstName.length < 2) {
+    errors.firstName = "First name must be at least 2 characters long.";
+  }
+
+  if (!lastName || lastName.length < 2) {
+    errors.lastName = "Last name must be at least 2 characters long.";
+  }
+
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!email || !emailRegex.test(email)) {
+    errors.email = "Please enter a valid email address.";
+  }
+
+  if (!phoneNumber || phoneNumber.replace(/\D/g, "").length !== 10) {
+    errors.phoneNumber = "Phone number must be 10 digits long.";
+  }
+
+  return errors;
+};
+
+export default function ScheduleForm({ date, selectedTime }) {
   const [state, setState] = useState(initialState);
+  const [errors, setErrors] = useState({});
 
   /*
         COMPLETE SECURTIY/VERIFICATIONS OF FORMDATA
@@ -54,8 +80,10 @@ export default function ScheduleForm({ date, selectedTime, refetch }) {
     }
 
     setState({ ...state, [name]: updatedValue });
+    setErrors((prevErrors) => ({ ...prevErrors, [name]: undefined }));
   };
 
+  const queryClient = useQueryClient();
   const mutation = useMutation(
     async (eventData) => {
       const response = await fetch("/api/events/add", {
@@ -74,7 +102,7 @@ export default function ScheduleForm({ date, selectedTime, refetch }) {
     },
     {
       onSuccess: (data) => {
-        refetch();
+        queryClient.invalidateQueries({ queryKey: ["events"] });
         console.log("Form successfully submitted: ", data);
       },
       onError: (error) => {
@@ -85,6 +113,12 @@ export default function ScheduleForm({ date, selectedTime, refetch }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    const validationErrors = validateFormData(state);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return; // Prevent submission if there are validation errors
+    }
 
     const { firstName, lastName, email, phoneNumber } = state,
       { startDate, endDate } = setTimeOnDate(date, selectedTime),
@@ -103,20 +137,29 @@ export default function ScheduleForm({ date, selectedTime, refetch }) {
         {formattedDate} from {selectedTime}:
       </h3>
       {formFields.map((field, idx) => (
-        <div className="d-flex w-75 pt-2" key={idx}>
-          <div className="flex-grow-1 text-end">
-            <b>{field.title}:</b>
+        <div key={idx}>
+          <div className="d-flex w-75 pt-2">
+            <div className="flex-grow-1 text-end">
+              <b>{field.title}:</b>
+            </div>
+            <div className="ps-2">
+              <input
+                type={field.type}
+                name={field.name}
+                onChange={(e) => handleChange(e, field)}
+                value={state[field.name]}
+                autoCapitalize={field.autoCapitalize ? "on" : "off"}
+                style={field.autoCapitalize && { textTransform: "capitalize" }}
+                autoComplete="on"
+              />
+            </div>
           </div>
-          <div className="ps-2">
-            <input
-              type={field.type}
-              name={field.name}
-              onChange={(e) => handleChange(e, field)}
-              value={state[field.name]}
-              autoCapitalize={field.autoCapitalize ? "on" : "off"}
-              style={field.autoCapitalize && { textTransform: "capitalize" }}
-              autoComplete="on"
-            />
+          <div>
+            {errors[field.name] && (
+              <p style={{ color: "red", fontSize: "0.8em" }}>
+                {errors[field.name]}
+              </p>
+            )}
           </div>
         </div>
       ))}

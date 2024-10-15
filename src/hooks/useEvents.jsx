@@ -1,7 +1,8 @@
-import { useContext } from "react";
+import { useContext, useMemo, useRef } from "react";
 import { isSameDay, setHours, setMinutes } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
-import { EventsContext } from "../context/EventsContext";
+// import { EventsContext } from "../context/EventsContext";
+import { useQuery, useQueryClient } from "react-query";
 
 // Scheduler configuration settings
 const scheduleConfig = {
@@ -90,6 +91,16 @@ function createFullDay(date) {
   return slots;
 }
 
+// Helper function to display available time slots for a given day
+const getShowTimes = (date, { sortedTimes, disabledDates, isLoading }) => {
+  const timesForDate = sortedTimes?.get(date) || [];
+  const isDisabled = disabledDates.some((dDate) => isSameDay(dDate, date));
+
+  if (isDisabled) return false; // Return false if the date is disabled
+  if (isLoading) return timesForDate; // Return times or empty array if loading
+  return timesForDate.length ? timesForDate : createFullDay(date); // Return times or full day
+};
+
 // Map events to their respective dates (date as key, events as value)
 function mapEvents(events) {
   const eventMap = new Map();
@@ -166,11 +177,55 @@ function sortDatesTimes(eventMap) {
   return { disabledDates, sortedTimes };
 }
 
-// Hook to access events
-const useEvents = () => useContext(EventsContext);
+// Hook to access events & getEvents function for useQuery
+
+const getEvents = async () => {
+  const response = await fetch("/api/events/");
+  return await response.json();
+};
+
+const queryStaleTime = 1000 * 60 * 0.1;
+
+function useEvents() {
+  const queryClient = useQueryClient();
+  const query = useQuery({
+      queryKey: ["events"],
+      queryFn: getEvents,
+      staleTime: queryStaleTime,
+      refetchInterval: queryStaleTime,
+    }),
+    { data, dataUpdatedAt, isLoading } = query;
+
+  const prevDataUpdatedAtRef = useRef(dataUpdatedAt);
+
+  const eventsData = useMemo(() => {
+    if (isLoading || !data || data?.length < 1)
+      return { disabledDates: [], sortedTimes: new Map() };
+
+    const cachedSortedTimes = queryClient.getQueryData(["sortedEvents"]);
+    const cachedUpdatedAt = queryClient.getQueryData(["sortedEventsUpdatedAt"]);
+
+    if (cachedUpdatedAt === dataUpdatedAt && cachedSortedTimes)
+      return cachedSortedTimes;
+
+    console.log("sorting");
+
+    const eventMap = mapEvents(data);
+    const newSortedEventsData = sortDatesTimes(eventMap);
+    prevDataUpdatedAtRef.current = dataUpdatedAt;
+
+    queryClient.setQueryData(["sortedEvents"], newSortedEventsData);
+    queryClient.setQueryData(["sortedEventsUpdatedAt"], dataUpdatedAt);
+
+    return newSortedEventsData;
+  }, [data, dataUpdatedAt]);
+
+  return { ...query, ...eventsData };
+}
 
 export {
   createFullDay,
+  getShowTimes,
   mapEvents,
   maxDate,
   openSaturday,
