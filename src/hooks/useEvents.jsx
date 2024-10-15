@@ -7,7 +7,7 @@ import { EventsContext } from "../context/EventsContext";
 const scheduleConfig = {
   startTime: "09:00",
   endTime: "12:00",
-  openSaturday: true,
+  openSaturday: false,
   openSunday: false,
   timeBuffer: 30, // Buffer time before/after events
   timeZone: "America/Los_Angeles",

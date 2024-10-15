@@ -15,20 +15,12 @@ export default function ShowTimes() {
   const { disabledDates, isLoading, refetch, sortedTimes } = useEvents();
 
   const getShowTimes = () => {
-    const getTimes = sortedTimes?.get(selectedDate);
-    const isDisabled = disabledDates.find((dDate) => isSameDay(dDate, date));
+    const timesForDate = sortedTimes?.get(selectedDate) || [];
+    const isDisabled = disabledDates.some((dDate) => isSameDay(dDate, date));
 
-    if (getTimes || isLoading) {
-      return getTimes || [];
-    }
-
-    if (isDisabled) {
-      return false;
-    } else if (!isDisabled) {
-      return createFullDay(date);
-    }
-
-    return [];
+    if (isDisabled) return false; // Return false if the date is disabled
+    if (isLoading) return timesForDate; // Return times or empty array if loading
+    return timesForDate.length ? timesForDate : createFullDay(date); // Return times or full day
   };
 
   const showTimes = getShowTimes();

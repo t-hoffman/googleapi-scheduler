@@ -55,11 +55,10 @@ export default function Scheduler() {
     }
   };
 
-  // For Chrome browser since it persist BrowserHistory (useLocation) state between sessions
   useEffect(() => {
+    // For Chrome browser since it persist BrowserHistory (useLocation) state between sessions
     const handleRefresh = () =>
       navigate(location.pathname, { state: { defaultView: new Date() } });
-
     window.addEventListener("beforeunload", handleRefresh);
 
     return () => window.removeEventListener("beforeunload", handleRefresh);
@@ -69,12 +68,13 @@ export default function Scheduler() {
     <div>
       <h2>Please select a time:</h2>
       <Calendar
+        calendarType="gregory"
         maxDate={maxDate}
         minDate={toZonedTime(new Date(), timeZone)}
         onChange={handleClick}
         tileClassName={tileClassName}
         tileDisabled={tileDisabled}
-        defaultValue={defaultView}
+        value={defaultView}
       />
     </div>
   );
