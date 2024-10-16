@@ -84,9 +84,10 @@ export default function ScheduleForm({ date, selectedTime }) {
   };
 
   const queryClient = useQueryClient();
+  const apiUrl = import.meta.env.VITE_API_URL;
   const mutation = useMutation(
     async (eventData) => {
-      const response = await fetch("/api/events/add", {
+      const response = await fetch(`${apiUrl}/events/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

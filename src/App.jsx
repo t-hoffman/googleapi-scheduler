@@ -1,6 +1,6 @@
 import React from "react";
-import Scheduler from "./Components/Scheduler";
 import { Route, Routes } from "react-router-dom";
+import Scheduler from "./components/Scheduler";
 import ShowTimes from "./components/ShowTimes";
 import { useEvents } from "./hooks/useEvents";
 

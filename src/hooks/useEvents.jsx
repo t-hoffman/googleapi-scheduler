@@ -180,11 +180,12 @@ function sortDatesTimes(eventMap) {
 // Hook to access events & getEvents function for useQuery
 
 const getEvents = async () => {
-  const response = await fetch("/api/events/");
+  const apiUrl = import.meta.env.VITE_API_URL;
+  const response = await fetch(`${apiUrl}/events/`);
   return await response.json();
 };
 
-const queryStaleTime = 1000 * 60 * 0.1;
+const queryStaleTime = 1000 * 60 * 1;
 
 function useEvents() {
   const queryClient = useQueryClient();
