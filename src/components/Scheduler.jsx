@@ -16,7 +16,8 @@ export default function Scheduler() {
   // console.log("<SCHEDULER />");
   const location = useLocation();
   const navigate = useNavigate();
-  const { disabledDates } = useEvents();
+  const query = useEvents(),
+    { disabledDates } = query.data;
   const defaultView = location.state?.defaultView || new Date();
 
   const handleClick = (e) => {

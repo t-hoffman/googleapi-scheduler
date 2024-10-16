@@ -47,6 +47,7 @@ const validateFormData = (data) => {
 export default function ScheduleForm({ date, selectedTime }) {
   const [state, setState] = useState(initialState);
   const [errors, setErrors] = useState({});
+  const [success, setSuccess] = useState(false);
 
   /*
         COMPLETE SECURTIY/VERIFICATIONS OF FORMDATA
@@ -104,6 +105,7 @@ export default function ScheduleForm({ date, selectedTime }) {
     {
       onSuccess: (data) => {
         queryClient.invalidateQueries({ queryKey: ["events"] });
+        setSuccess(true);
         console.log("Form successfully submitted: ", data);
       },
       onError: (error) => {
@@ -144,15 +146,21 @@ export default function ScheduleForm({ date, selectedTime }) {
               <b>{field.title}:</b>
             </div>
             <div className="ps-2">
-              <input
-                type={field.type}
-                name={field.name}
-                onChange={(e) => handleChange(e, field)}
-                value={state[field.name]}
-                autoCapitalize={field.autoCapitalize ? "on" : "off"}
-                style={field.autoCapitalize && { textTransform: "capitalize" }}
-                autoComplete="on"
-              />
+              {success ? (
+                state[field.name]
+              ) : (
+                <input
+                  type={field.type}
+                  name={field.name}
+                  onChange={(e) => handleChange(e, field)}
+                  value={state[field.name]}
+                  autoCapitalize={field.autoCapitalize ? "on" : "off"}
+                  style={
+                    field.autoCapitalize && { textTransform: "capitalize" }
+                  }
+                  autoComplete="on"
+                />
+              )}
             </div>
           </div>
           <div>
@@ -164,7 +172,10 @@ export default function ScheduleForm({ date, selectedTime }) {
           </div>
         </div>
       ))}
-      <div className="w-100 text-center pt-3">
+      <div
+        className="w-100 text-center pt-3"
+        style={{ display: success && "none" }}
+      >
         <button
           className="btn btn-warning"
           onClick={handleSubmit}
@@ -179,7 +190,7 @@ export default function ScheduleForm({ date, selectedTime }) {
         </p>
       )}
       {mutation.isSuccess && (
-        <p>
+        <p className="pt-4">
           <b style={{ color: "green" }}>Form submitted successfully!</b>
         </p>
       )}

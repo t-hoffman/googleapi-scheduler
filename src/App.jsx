@@ -7,8 +7,10 @@ import { useEvents } from "./hooks/useEvents";
 export function Home() {
   // console.log("<HOME />");
 
-  const { dataUpdatedAt, data: eventData } = useEvents();
-  const mapEvents = eventData?.map((event, idx) => {
+  const query = useEvents();
+  const { dataUpdatedAt, data } = query;
+
+  const mapEvents = data.events?.map((event, idx) => {
     const date = event.start.dateTime
       ? new Date(event.start.dateTime).toDateString()
       : new Date(event.start.date).toDateString();

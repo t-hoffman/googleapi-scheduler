@@ -1,7 +1,6 @@
-import { useMemo } from "react";
 import { isSameDay, setHours, setMinutes } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
-import { useQuery, useQueryClient } from "react-query";
+import { useQuery } from "react-query";
 
 // Scheduler configuration settings
 const scheduleConfig = {
@@ -12,7 +11,7 @@ const scheduleConfig = {
   timeBuffer: 30, // Buffer time before/after events
   timeZone: "America/Los_Angeles",
   userTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  queryStaleTime: 1000 * 60 * 0.25,
+  queryStaleTime: 1000 * 60 * 1,
 };
 const {
   startTime,
@@ -93,12 +92,13 @@ function createFullDay(date) {
 }
 
 // Helper function to display available time slots for a given day
-const getShowTimes = (date, { sortedTimes, disabledDates, isLoading }) => {
+const getShowTimes = (date, query) => {
+  const { disabledDates, sortedTimes } = query.data;
   const timesForDate = sortedTimes?.get(date) || [];
   const isDisabled = disabledDates.some((dDate) => isSameDay(dDate, date));
 
   if (isDisabled) return false; // Return false if the date is disabled
-  if (isLoading) return timesForDate; // Return times or empty array if loading
+  if (!query.isFetched) return timesForDate; // Return times or empty array if loading
   return timesForDate.length ? timesForDate : createFullDay(date); // Return times or full day
 };
 
@@ -184,47 +184,31 @@ function getAvailableSlots(day, events, currentMinutes) {
 }
 
 // Hook to access events & getEvents function for react-query
+const initialEventData = {
+  data: [],
+  disabledDates: [],
+  sortedTimes: new Map(),
+};
+
 const getEvents = async () => {
   const apiUrl = import.meta.env.VITE_API_URL;
   const response = await fetch(`${apiUrl}/events/`);
-  return await response.json();
+  const events = await response.json();
+
+  console.log("sorting...");
+  const eventMap = mapEvents(events);
+  const { disabledDates, sortedTimes } = sortDatesTimes(eventMap);
+
+  return { events, disabledDates, sortedTimes };
 };
 
 function useEvents() {
-  const queryClient = useQueryClient();
-  const query = useQuery({
-      queryKey: ["events"],
-      queryFn: getEvents,
-      staleTime: queryStaleTime,
-      refetchInterval: queryStaleTime,
-    }),
-    { data, dataUpdatedAt, isLoading } = query;
-
-  const defaultEventsData = { disabledDates: [], sortedTimes: new Map() };
-
-  const eventsData = useMemo(() => {
-    if (isLoading || !data || data.length < 1) return defaultEventsData;
-
-    const cachedSortedTimes = queryClient.getQueryData(["sortedEvents"]);
-    const cachedUpdatedAt = queryClient.getQueryData(["sortedEventsUpdatedAt"]);
-    const useCache = cachedUpdatedAt === dataUpdatedAt && cachedSortedTimes;
-
-    // Return sorted events from cache if it is up to date
-    if (useCache) return cachedSortedTimes;
-
-    console.log("sorting...");
-
-    const eventMap = mapEvents(data);
-    const newSortedEventsData = sortDatesTimes(eventMap);
-
-    // Cache the new sorted events and their updated timestamp
-    queryClient.setQueryData(["sortedEvents"], newSortedEventsData);
-    queryClient.setQueryData(["sortedEventsUpdatedAt"], dataUpdatedAt);
-
-    return newSortedEventsData;
-  }, [data, dataUpdatedAt]);
-
-  return { ...query, ...eventsData };
+  return useQuery({
+    queryKey: ["events"],
+    queryFn: getEvents,
+    refetchInterval: queryStaleTime,
+    initialData: initialEventData,
+  });
 }
 
 export {

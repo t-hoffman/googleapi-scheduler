@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useEvents, createFullDay, getShowTimes } from "../hooks/useEvents";
+import { useEvents, getShowTimes } from "../hooks/useEvents";
 import ScheduleForm from "./ScheduleForm";
-import { isSameDay } from "date-fns";
 
 export default function ShowTimes() {
   //   console.log("<SHOWTIMES />");
@@ -13,7 +12,6 @@ export default function ShowTimes() {
   const date = new Date(Number(dateId));
   const selectedDate = date.toDateString();
   const query = useEvents();
-  const { disabledDates, isLoading, sortedTimes } = query;
 
   const showTimes = getShowTimes(selectedDate, query);
 
