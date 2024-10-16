@@ -1,7 +1,6 @@
-import { useContext, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { isSameDay, setHours, setMinutes } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
-// import { EventsContext } from "../context/EventsContext";
 import { useQuery, useQueryClient } from "react-query";
 
 // Scheduler configuration settings
@@ -13,12 +12,14 @@ const scheduleConfig = {
   timeBuffer: 30, // Buffer time before/after events
   timeZone: "America/Los_Angeles",
   userTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  queryStaleTime: 1000 * 60 * 0.25,
 };
 const {
   startTime,
   endTime,
   openSaturday,
   openSunday,
+  queryStaleTime,
   timeBuffer,
   timeZone,
   userTimeZone,
@@ -126,47 +127,17 @@ function sortDatesTimes(eventMap) {
   );
 
   eventMap.forEach((events, day) => {
-    const slots = [];
-    const isToday = isSameDay(day, toZonedTime(new Date(), timeZone));
+    const slots = getAvailableSlots(day, events, currentMinutes);
 
-    const bookedTimes = events.map((event) => ({
-      start: event.start.date
-        ? timeToMinutes(startTime)
-        : timeToMinutes(
-            formatInTimeZone(event.start.dateTime, timeZone, "HH:mm")
-          ),
-      end: event.end.date
-        ? timeToMinutes(endTime)
-        : timeToMinutes(
-            formatInTimeZone(event.end.dateTime, timeZone, "HH:mm")
-          ),
-    }));
-
-    for (
-      let i = timeToMinutes(startTime);
-      i <= timeToMinutes(endTime) - 15;
-      i += 15
-    ) {
-      if (isToday && (i <= currentMinutes || i - currentMinutes <= timeBuffer))
-        continue;
-
-      const isAvailable = !bookedTimes.some(
-        (e) => i < e.end && i + 15 > e.start
-      );
-
-      if (isAvailable)
-        slots.push(
-          `${minutesToTimeString(i)} - ${minutesToTimeString(i + 15)}`
-        );
-    }
-
-    if (slots.length === 0) {
-      disabledDates.push(new Date(day));
+    if (slots.length > 0) {
+      sortedTimes.set(day, slots); // there is availability for this day, map it
     } else {
-      sortedTimes.set(day, slots);
+      disabledDates.push(new Date(day)); // no availability, add to disabledDates
     }
   });
 
+  // If the current time is after endTime (inc. buffer) or there isn't 15 min left
+  // before end time for another slot insert today in disabledDates
   if (
     currentMinutes >= endBufferMinutes ||
     endBufferMinutes - currentMinutes <= 15
@@ -177,15 +148,47 @@ function sortDatesTimes(eventMap) {
   return { disabledDates, sortedTimes };
 }
 
-// Hook to access events & getEvents function for useQuery
+// Return available time slots for a given day
+function getAvailableSlots(day, events, currentMinutes) {
+  const slots = [];
+  const isToday = isSameDay(day, toZonedTime(new Date(), timeZone));
+  const bookedTimes = events.map((event) => ({
+    start: event.start.date
+      ? timeToMinutes(startTime)
+      : timeToMinutes(
+          formatInTimeZone(event.start.dateTime, timeZone, "HH:mm")
+        ),
+    end: event.end.date
+      ? timeToMinutes(endTime)
+      : timeToMinutes(formatInTimeZone(event.end.dateTime, timeZone, "HH:mm")),
+  }));
 
+  for (
+    let i = timeToMinutes(startTime);
+    i <= timeToMinutes(endTime) - 15;
+    i += 15
+  ) {
+    // Skip unavailable slots based on today's time and buffer
+    if (isToday && (i <= currentMinutes || i - currentMinutes <= timeBuffer))
+      continue;
+
+    const isAvailable = !bookedTimes.some(
+      ({ start, end }) => i < end && i + 15 > start
+    );
+
+    if (isAvailable)
+      slots.push(`${minutesToTimeString(i)} - ${minutesToTimeString(i + 15)}`);
+  }
+
+  return slots;
+}
+
+// Hook to access events & getEvents function for react-query
 const getEvents = async () => {
   const apiUrl = import.meta.env.VITE_API_URL;
   const response = await fetch(`${apiUrl}/events/`);
   return await response.json();
 };
-
-const queryStaleTime = 1000 * 60 * 1;
 
 function useEvents() {
   const queryClient = useQueryClient();
@@ -197,24 +200,24 @@ function useEvents() {
     }),
     { data, dataUpdatedAt, isLoading } = query;
 
-  const prevDataUpdatedAtRef = useRef(dataUpdatedAt);
+  const defaultEventsData = { disabledDates: [], sortedTimes: new Map() };
 
   const eventsData = useMemo(() => {
-    if (isLoading || !data || data?.length < 1)
-      return { disabledDates: [], sortedTimes: new Map() };
+    if (isLoading || !data || data.length < 1) return defaultEventsData;
 
     const cachedSortedTimes = queryClient.getQueryData(["sortedEvents"]);
     const cachedUpdatedAt = queryClient.getQueryData(["sortedEventsUpdatedAt"]);
+    const useCache = cachedUpdatedAt === dataUpdatedAt && cachedSortedTimes;
 
-    if (cachedUpdatedAt === dataUpdatedAt && cachedSortedTimes)
-      return cachedSortedTimes;
+    // Return sorted events from cache if it is up to date
+    if (useCache) return cachedSortedTimes;
 
-    console.log("sorting");
+    console.log("sorting...");
 
     const eventMap = mapEvents(data);
     const newSortedEventsData = sortDatesTimes(eventMap);
-    prevDataUpdatedAtRef.current = dataUpdatedAt;
 
+    // Cache the new sorted events and their updated timestamp
     queryClient.setQueryData(["sortedEvents"], newSortedEventsData);
     queryClient.setQueryData(["sortedEventsUpdatedAt"], dataUpdatedAt);
 
