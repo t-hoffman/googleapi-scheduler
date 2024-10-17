@@ -1,6 +1,6 @@
 import { isSameDay, setHours, setMinutes } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
-import { useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 
 // Scheduler configuration settings
 const scheduleConfig = {
@@ -118,7 +118,9 @@ function mapEvents(events) {
 }
 
 // Find available 15-minute chunks and manage disabled dates
-function sortDatesTimes(eventMap) {
+function sortDatesTimes(events) {
+  console.log("sorting...");
+  const eventMap = mapEvents(events);
   const sortedTimes = new Map();
   const disabledDates = [];
   const endBufferMinutes = timeToMinutes(endTime) - timeBuffer;
@@ -185,7 +187,7 @@ function getAvailableSlots(day, events, currentMinutes) {
 
 // Hook to access events & getEvents function for react-query
 const initialEventData = {
-  data: [],
+  events: [],
   disabledDates: [],
   sortedTimes: new Map(),
 };
@@ -195,12 +197,68 @@ const getEvents = async () => {
   const response = await fetch(`${apiUrl}/events/`);
   const events = await response.json();
 
-  console.log("sorting...");
-  const eventMap = mapEvents(events);
-  const { disabledDates, sortedTimes } = sortDatesTimes(eventMap);
+  const { disabledDates, sortedTimes } = sortDatesTimes(events);
 
   return { events, disabledDates, sortedTimes };
 };
+
+function useAddEvent(callback) {
+  const apiUrl = import.meta.env.VITE_API_URL;
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    async (eventData) => {
+      const response = await fetch(`${apiUrl}/events/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(eventData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit event.");
+      }
+
+      return response.json();
+    },
+    {
+      onMutate: (values) => {
+        const prevCache = queryClient.getQueryData(["events"]);
+        const newEvent = {
+          summary: values.summary,
+          start: {
+            dateTime: values.startDate,
+            timeZone: userTimeZone,
+          },
+          end: {
+            dateTime: values.endDate,
+            timeZone: userTimeZone,
+          },
+        };
+        const optimisticEvents = [...prevCache.events, newEvent];
+        const { disabledDates, sortedTimes } = sortDatesTimes(optimisticEvents);
+
+        queryClient.setQueryData(["events"], {
+          events: optimisticEvents,
+          disabledDates,
+          sortedTimes,
+        });
+
+        return () => queryClient.setQueryData(["events"], prevCache);
+      },
+      onSuccess: (data) => {
+        queryClient.refetchQueries({ queryKey: ["events"] });
+        callback(true);
+        console.log("Form successfully submitted: ", data);
+      },
+      onError: (error, values, rollback) => {
+        rollback();
+        console.error("Form submission failed:", error.message);
+      },
+    }
+  );
+}
 
 function useEvents() {
   return useQuery({
@@ -222,5 +280,6 @@ export {
   sortDatesTimes,
   timeZone,
   useEvents,
+  useAddEvent,
   userTimeZone,
 };

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useEvents, getShowTimes } from "../hooks/useEvents";
 import ScheduleForm from "./ScheduleForm";
 
 export default function ShowTimes() {
-  //   console.log("<SHOWTIMES />");
+  // console.log("<SHOWTIMES />");
   const [showForm, setShowForm] = useState({ selectedTime: false });
   const { dateId } = useParams();
   const navigate = useNavigate();
@@ -43,43 +43,41 @@ export default function ShowTimes() {
   );
 }
 
+/*
+
+  REFACTOR: MOVE <ScheduleForm /> TO THIS COMPONENT
+
+*/
 function TimeList({ showTimes, setShowForm }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!showTimes) navigate("/");
+    if (!!!showTimes) navigate("/");
   }, [showTimes]);
 
-  if (!showTimes) {
-    return null;
-  }
-
   return (
-    <ul style={{ listStyle: "none" }}>
-      {showTimes.length > 0 ? (
-        showTimes.map((time, idx) => (
-          <li className="mt-3" key={idx}>
-            <button
-              className="btn btn-primary"
-              onClick={() =>
-                setShowForm((prevState) => ({
-                  ...prevState,
-                  selectedTime: time,
-                }))
-              }
-            >
-              {time}
-            </button>
-          </li>
-        ))
-      ) : showTimes.length === 0 ? (
-        <>Loading ...</>
-      ) : (
-        <>
-          <h3>Sorry, but there are no more times left.</h3>If you are not
-          automatically redirected please <Link to="/">click here</Link>.
-        </>
-      )}
-    </ul>
+    showTimes && (
+      <ul style={{ listStyle: "none" }}>
+        {showTimes.length > 0 ? (
+          showTimes.map((time, idx) => (
+            <li className="mt-3" key={idx}>
+              <button
+                className="btn btn-primary"
+                onClick={() =>
+                  setShowForm((prevState) => ({
+                    ...prevState,
+                    selectedTime: time,
+                  }))
+                }
+              >
+                {time}
+              </button>
+            </li>
+          ))
+        ) : (
+          <>Loading ...</>
+        )}
+      </ul>
+    )
   );
 }

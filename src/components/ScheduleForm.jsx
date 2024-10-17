@@ -1,7 +1,6 @@
 import { format } from "date-fns";
 import React, { useState } from "react";
-import { setTimeOnDate, userTimeZone } from "../hooks/useEvents";
-import { useMutation, useQueryClient } from "react-query";
+import { setTimeOnDate, useAddEvent, userTimeZone } from "../hooks/useEvents";
 
 const initialState = {
   firstName: "",
@@ -48,6 +47,7 @@ export default function ScheduleForm({ date, selectedTime }) {
   const [state, setState] = useState(initialState);
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState(false);
+  const mutation = useAddEvent(setSuccess);
 
   /*
         COMPLETE SECURTIY/VERIFICATIONS OF FORMDATA
@@ -83,36 +83,6 @@ export default function ScheduleForm({ date, selectedTime }) {
     setState({ ...state, [name]: updatedValue });
     setErrors((prevErrors) => ({ ...prevErrors, [name]: undefined }));
   };
-
-  const queryClient = useQueryClient();
-  const apiUrl = import.meta.env.VITE_API_URL;
-  const mutation = useMutation(
-    async (eventData) => {
-      const response = await fetch(`${apiUrl}/events/add`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(eventData),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to submit event.");
-      }
-
-      return response.json();
-    },
-    {
-      onSuccess: (data) => {
-        queryClient.invalidateQueries({ queryKey: ["events"] });
-        setSuccess(true);
-        console.log("Form successfully submitted: ", data);
-      },
-      onError: (error) => {
-        console.error("Form submission failed:", error.message);
-      },
-    }
-  );
 
   const handleSubmit = (e) => {
     e.preventDefault();
