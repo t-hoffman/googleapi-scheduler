@@ -21,7 +21,6 @@ const formatPhoneNumber = (number) => {
 const validateFormData = (data) => {
   const { firstName, lastName, email, phoneNumber } = data;
   const errors = [];
-  const errorParams = {};
 
   if (!firstName || firstName.length < 2) {
     errors.firstName = "First name must be at least 2 characters long.";
@@ -129,6 +128,7 @@ export default function ScheduleForm({ date, selectedTime }) {
                     field.autoCapitalize && { textTransform: "capitalize" }
                   }
                   autoComplete="on"
+                  disabled={mutation.isLoading}
                 />
               )}
             </div>
