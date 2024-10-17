@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import React, { useState } from "react";
-import { setTimeOnDate, useAddEvent, userTimeZone } from "../hooks/useEvents";
+import { setTimeOnDate, useAddEvent, timeZone } from "../hooks/useEvents";
+import { useNavigate } from "react-router-dom";
 
 const initialState = {
   firstName: "",
@@ -20,23 +21,52 @@ const formatPhoneNumber = (number) => {
 
 const validateFormData = (data) => {
   const { firstName, lastName, email, phoneNumber } = data;
-  const errors = [];
-
-  if (!firstName || firstName.length < 2) {
-    errors.firstName = "First name must be at least 2 characters long.";
-  }
-
-  if (!lastName || lastName.length < 2) {
-    errors.lastName = "Last name must be at least 2 characters long.";
-  }
-
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  if (!email || !emailRegex.test(email)) {
-    errors.email = "Please enter a valid email address.";
-  }
+  const errors = {};
 
-  if (!phoneNumber || phoneNumber.replace(/\D/g, "").length !== 10) {
-    errors.phoneNumber = "Phone number must be 10 digits long.";
+  const errorParams = {
+    firstName: [
+      {
+        check: !firstName || firstName.length < 2,
+        message: "First name must be at least 2 characters long.",
+      },
+      {
+        check: firstName && firstName.length > 32,
+        message: "First name must be less than 32 characters long.",
+      },
+    ],
+    lastName: [
+      {
+        check: !lastName || lastName.length < 2,
+        message: "Last name must be at least 2 characters long.",
+      },
+      {
+        check: lastName && lastName.length > 32,
+        message: "Last name must be less than 32 characters long.",
+      },
+    ],
+    email: [
+      {
+        check: !email || !emailRegex.test(email),
+        message: "Please enter a valid email address.",
+      },
+    ],
+    phoneNumber: [
+      {
+        check: !phoneNumber || phoneNumber.replace(/\D/g, "").length !== 10,
+        message: "Phone number must be 10 digits long.",
+      },
+    ],
+  };
+
+  for (const key in errorParams) {
+    errorParams[key].some(({ check, message }) => {
+      if (check) {
+        errors[key] = message;
+        return true; // Exit loop once an error is found
+      }
+      return false;
+    });
   }
 
   return errors;
@@ -45,9 +75,8 @@ const validateFormData = (data) => {
 export default function ScheduleForm({ date, selectedTime }) {
   const [state, setState] = useState(initialState);
   const [errors, setErrors] = useState({});
-  const [success, setSuccess] = useState(false);
-  const mutation = useAddEvent(setSuccess);
-
+  const mutation = useAddEvent();
+  const navigate = useNavigate();
   /*
         COMPLETE SECURTIY/VERIFICATIONS OF FORMDATA
   */
@@ -79,7 +108,7 @@ export default function ScheduleForm({ date, selectedTime }) {
       updatedValue = value.charAt(0).toUpperCase() + value.slice(1);
     }
 
-    setState({ ...state, [name]: updatedValue });
+    setState({ ...state, [name]: String(updatedValue) });
     setErrors((prevErrors) => ({ ...prevErrors, [name]: undefined }));
   };
 
@@ -99,7 +128,7 @@ export default function ScheduleForm({ date, selectedTime }) {
         phoneNumber
       )} - ${email}`;
 
-    mutation.mutate({ startDate, endDate, summary, timeZone: userTimeZone });
+    mutation.mutate({ startDate, endDate, summary, timeZone });
   };
 
   return (
@@ -109,13 +138,13 @@ export default function ScheduleForm({ date, selectedTime }) {
         {formattedDate} from {selectedTime}:
       </h3>
       {formFields.map((field, idx) => (
-        <div key={idx}>
+        <React.Fragment key={idx}>
           <div className="d-flex w-75 pt-2">
             <div className="flex-grow-1 text-end">
               <b>{field.title}:</b>
             </div>
             <div className="ps-2">
-              {success ? (
+              {mutation.isSuccess ? (
                 state[field.name]
               ) : (
                 <input
@@ -124,9 +153,12 @@ export default function ScheduleForm({ date, selectedTime }) {
                   onChange={(e) => handleChange(e, field)}
                   value={state[field.name]}
                   autoCapitalize={field.autoCapitalize ? "on" : "off"}
-                  style={
-                    field.autoCapitalize && { textTransform: "capitalize" }
-                  }
+                  style={{
+                    ...(field.autoCapitalize && {
+                      textTransform: "capitalize",
+                    }),
+                    ...(errors[field.name] && { border: "1px solid red" }),
+                  }}
                   autoComplete="on"
                   disabled={mutation.isLoading}
                 />
@@ -140,11 +172,11 @@ export default function ScheduleForm({ date, selectedTime }) {
               </p>
             )}
           </div>
-        </div>
+        </React.Fragment>
       ))}
       <div
         className="w-100 text-center pt-3"
-        style={{ display: success && "none" }}
+        style={{ display: mutation.isSuccess && "none" }}
       >
         <button
           className="btn btn-warning"
@@ -160,9 +192,20 @@ export default function ScheduleForm({ date, selectedTime }) {
         </p>
       )}
       {mutation.isSuccess && (
-        <p className="pt-4">
-          <b style={{ color: "green" }}>Form submitted successfully!</b>
-        </p>
+        <>
+          <p className="pt-4">
+            <b style={{ color: "green" }}>Form submitted successfully!</b>
+          </p>
+          <button
+            className="btn btn-success"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("/");
+            }}
+          >
+            Home
+          </button>
+        </>
       )}
     </form>
   );

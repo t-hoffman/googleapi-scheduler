@@ -16,7 +16,7 @@ export function Home() {
       : new Date(event.start.date).toDateString();
 
     return (
-      <div key={idx}>
+      <div key={event.id || idx}>
         <b>
           {event.summary}
           <br />

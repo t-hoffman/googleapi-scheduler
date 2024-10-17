@@ -53,60 +53,66 @@ const getEvents = async () => {
   return { events, disabledDates, sortedTimes };
 };
 
-function useAddEvent(callback) {
+function useAddEvent() {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    async (eventData) => {
-      const options = {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(eventData),
-      };
-      const response = await fetch(`${apiUrl}/events/add`, options);
-      if (!response.ok) {
-        throw new Error("Failed to submit event.");
-      }
-      return response.json();
-    },
-    {
-      onMutate: (values) => {
-        const prevCache = queryClient.getQueryData(["events"]);
-        const newEvent = {
-          summary: values.summary,
-          start: {
-            dateTime: values.startDate,
-            timeZone,
-          },
-          end: {
-            dateTime: values.endDate,
-            timeZone,
-          },
-        };
-        const optimisticEvents = [...prevCache.events, newEvent];
-        const { disabledDates, sortedTimes } = sortDatesTimes(optimisticEvents);
-
-        queryClient.setQueryData(["events"], {
-          events: optimisticEvents,
-          disabledDates,
-          sortedTimes,
-        });
-
-        return () => queryClient.setQueryData(["events"], prevCache);
+  const postEvent = async (eventData) => {
+    const options = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-      onSuccess: (data) => {
-        queryClient.refetchQueries({ queryKey: ["events"] });
-        callback(true);
-        console.log("Form successfully submitted: ", data);
-      },
-      onError: (error, values, rollback) => {
-        rollback();
-        console.error("Form submission failed:", error.message);
-      },
+      body: JSON.stringify(eventData),
+    };
+    const response = await fetch(`${apiUrl}/events/add`, options);
+    if (!response.ok) {
+      throw new Error("Failed to submit event.");
     }
-  );
+    return response.json();
+  };
+
+  const optimisticUpdate = (values) => {
+    const prevCache = queryClient.getQueryData(["events"]);
+    const newEvent = {
+      summary: values.summary,
+      start: {
+        dateTime: values.startDate,
+        timeZone,
+      },
+      end: {
+        dateTime: values.endDate,
+        timeZone,
+      },
+    };
+    const optimisticEvents = [...prevCache.events, newEvent];
+    optimisticEvents.sort(
+      (a, b) =>
+        new Date(a.start.dateTime).getTime() -
+        new Date(b.start.dateTime).getTime()
+    );
+    const { disabledDates, sortedTimes } = sortDatesTimes(optimisticEvents);
+
+    queryClient.setQueryData(["events"], {
+      events: optimisticEvents,
+      disabledDates,
+      sortedTimes,
+    });
+
+    return () => queryClient.setQueryData(["events"], prevCache);
+  };
+
+  return useMutation({
+    mutationFn: postEvent,
+    onMutate: optimisticUpdate,
+    onSuccess: (data) => {
+      queryClient.refetchQueries({ queryKey: ["events"] });
+      console.log("Form successfully submitted: ", data);
+    },
+    onError: (error, values, rollback) => {
+      rollback();
+      console.error("Form submission failed:", error.message);
+    },
+  });
 }
 
 function useEvents() {

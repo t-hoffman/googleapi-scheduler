@@ -46,47 +46,27 @@ export function setTimeOnDate(date, selectedTime) {
   };
 }
 
-// Unified function to generate available slots or full day slots
-function generateAvailableSlots(day, events = []) {
+// Create available time slots for a specific day
+function createFullDay(date) {
+  console.log("full");
   const slots = [];
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
   const currentMinutes = timeToMinutes(
     formatInTimeZone(new Date(), timeZone, "HH:mm")
   );
-  const isToday = isSameDay(day, new Date());
+  const isToday = isSameDay(date, new Date());
   const earliestStart = currentMinutes + timeBuffer;
-
-  // Map event times if events are provided
-  const bookedTimes = events.map((event) => ({
-    start: event.start.date
-      ? start
-      : timeToMinutes(
-          formatInTimeZone(event.start.dateTime, timeZone, "HH:mm")
-        ),
-    end: event.end.date
-      ? end
-      : timeToMinutes(formatInTimeZone(event.end.dateTime, timeZone, "HH:mm")),
-  }));
+  const latestStart = end - timeBuffer;
 
   for (let i = start; i <= end - 15; i += 15) {
     const slotStart = minutesToTimeString(i);
     const slotEnd = minutesToTimeString(i + 15);
 
-    // Logic for "Today" with buffer and current time considerations
-    if (isToday) {
-      if (i <= currentMinutes || i <= earliestStart) {
-        continue;
-      }
-    }
-
-    // Check if the time slot conflicts with any booked events
-    const isAvailable = !bookedTimes.some(
-      ({ start, end }) => i < end && i + 15 > start
-    );
-
-    // If available or if no events are passed (full day slots), push the slot
-    if (isAvailable || events.length === 0) {
+    if (
+      !isToday ||
+      (i > currentMinutes && i > earliestStart && i < latestStart)
+    ) {
       slots.push(`${slotStart} - ${slotEnd}`);
     }
   }
@@ -102,7 +82,7 @@ export const getShowTimes = (date, query) => {
 
   if (isDisabled) return false; // Return false if the date is disabled
   if (!query.isFetched) return timesForDate; // Return times or empty array if loading
-  return timesForDate.length ? timesForDate : generateAvailableSlots(date); // Return times or full day slots
+  return timesForDate.length ? timesForDate : createFullDay(date); // Return times or full day
 };
 
 // Map events to their respective dates (date as key, events as value)
@@ -126,14 +106,13 @@ export function sortDatesTimes(events) {
   const eventMap = mapEvents(events);
   const sortedTimes = new Map();
   const disabledDates = [];
+  const endBufferMinutes = timeToMinutes(endTime) - timeBuffer;
   const currentMinutes = timeToMinutes(
     formatInTimeZone(new Date(), timeZone, "HH:mm")
   );
 
-  const endBufferMinutes = timeToMinutes(endTime) - timeBuffer;
-
   eventMap.forEach((events, day) => {
-    const slots = generateAvailableSlots(day, events);
+    const slots = getAvailableSlots(day, events, currentMinutes);
 
     if (slots.length > 0) {
       sortedTimes.set(day, slots); // there is availability for this day, map it
@@ -152,4 +131,39 @@ export function sortDatesTimes(events) {
   }
 
   return { disabledDates, sortedTimes };
+}
+
+// Return available time slots for a given day
+function getAvailableSlots(day, events, currentMinutes) {
+  const slots = [];
+  const isToday = isSameDay(day, toZonedTime(new Date(), timeZone));
+  const bookedTimes = events.map((event) => ({
+    start: event.start.date
+      ? timeToMinutes(startTime)
+      : timeToMinutes(
+          formatInTimeZone(event.start.dateTime, timeZone, "HH:mm")
+        ),
+    end: event.end.date
+      ? timeToMinutes(endTime)
+      : timeToMinutes(formatInTimeZone(event.end.dateTime, timeZone, "HH:mm")),
+  }));
+
+  for (
+    let i = timeToMinutes(startTime);
+    i <= timeToMinutes(endTime) - 15;
+    i += 15
+  ) {
+    // Skip unavailable slots based on today's time and buffer
+    if (isToday && (i <= currentMinutes || i - currentMinutes <= timeBuffer))
+      continue;
+
+    const isAvailable = !bookedTimes.some(
+      ({ start, end }) => i < end && i + 15 > start
+    );
+
+    if (isAvailable)
+      slots.push(`${minutesToTimeString(i)} - ${minutesToTimeString(i + 15)}`);
+  }
+
+  return slots;
 }
