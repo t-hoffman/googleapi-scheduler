@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import { getShowTimes, setTimeOnDate, sortDatesTimes } from "../utils/events";
+import { toZonedTime } from "date-fns-tz";
 
 // Scheduler configuration settings
 const scheduleConfig = {
     startTime: "09:00",
-    endTime: "12:00",
+    endTime: "19:45",
     openSaturday: false,
     openSunday: false,
     timeBuffer: 30, // Buffer time before/after events
@@ -26,7 +27,8 @@ const scheduleConfig = {
   } = scheduleConfig;
 
 // Maximum selection for today + end of next month
-const today = new Date();
+const today =
+  userTimeZone !== timeZone ? toZonedTime(new Date(), timeZone) : new Date();
 const maxDate = new Date(
   today.getFullYear(),
   today.getMonth() + 2,
@@ -65,10 +67,11 @@ function useAddEvent() {
       body: JSON.stringify(eventData),
     };
     const response = await fetch(`${apiUrl}/events/add`, options);
+    const data = await response.json();
     if (!response.ok) {
-      throw new Error("Failed to submit event.");
+      throw new Error(data.message || response.statusText);
     }
-    return response.json();
+    return data;
   };
 
   const optimisticUpdate = (values) => {
@@ -84,11 +87,12 @@ function useAddEvent() {
         timeZone,
       },
     };
+    console.log(newEvent);
     const optimisticEvents = [...prevCache.events, newEvent];
     optimisticEvents.sort(
       (a, b) =>
-        new Date(a.start.dateTime).getTime() -
-        new Date(b.start.dateTime).getTime()
+        new Date(a.start.dateTime || a.start.date).getTime() -
+        new Date(b.end.dateTime || b.end.date).getTime()
     );
     const { disabledDates, sortedTimes } = sortDatesTimes(optimisticEvents);
 
@@ -108,10 +112,7 @@ function useAddEvent() {
       queryClient.refetchQueries({ queryKey: ["events"] });
       console.log("Form successfully submitted: ", data);
     },
-    onError: (error, values, rollback) => {
-      rollback();
-      console.error("Form submission failed:", error.message);
-    },
+    onError: (error, values, rollback) => rollback(),
   });
 }
 

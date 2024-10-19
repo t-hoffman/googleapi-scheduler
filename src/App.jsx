@@ -43,7 +43,7 @@ export function App() {
     <Routes>
       <Route index element={<Home />} />
       <Route path="schedule" element={<ShowTimes />}>
-        <Route path=":dateId" element={<ShowTimes />} />
+        <Route path=":month/:day/:year" element={<ShowTimes />} />
       </Route>
     </Routes>
   );

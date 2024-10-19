@@ -1,4 +1,4 @@
-import { isSameDay, setHours, setMinutes } from "date-fns";
+import { format, isSameDay, setHours, setMinutes } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 import {
   endTime,
@@ -51,10 +51,10 @@ function generateAvailableSlots(day, events = []) {
   const slots = [];
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
-  const currentMinutes = timeToMinutes(
-    formatInTimeZone(new Date(), timeZone, "HH:mm")
-  );
-  const isToday = isSameDay(day, new Date());
+  const today =
+    userTimeZone === timeZone ? new Date() : toZonedTime(new Date(), timeZone);
+  const currentMinutes = timeToMinutes(format(today, "HH:mm"));
+  const isToday = isSameDay(day, today);
   const earliestStart = currentMinutes + timeBuffer;
 
   // Map event times if events are provided
@@ -73,12 +73,9 @@ function generateAvailableSlots(day, events = []) {
     const slotStart = minutesToTimeString(i);
     const slotEnd = minutesToTimeString(i + 15);
 
+    let x = 0;
     // Logic for "Today" with buffer and current time considerations
-    if (isToday) {
-      if (i <= currentMinutes || i <= earliestStart) {
-        continue;
-      }
-    }
+    if (isToday && (i <= currentMinutes || i <= earliestStart)) continue;
 
     // Check if the time slot conflicts with any booked events
     const isAvailable = !bookedTimes.some(
@@ -88,6 +85,9 @@ function generateAvailableSlots(day, events = []) {
     // If available or if no events are passed (full day slots), push the slot
     if (isAvailable || events.length === 0) {
       slots.push(`${slotStart} - ${slotEnd}`);
+    }
+    if (isToday) {
+      // console.log(slots);
     }
   }
 
@@ -102,7 +102,12 @@ export const getShowTimes = (date, query) => {
 
   if (isDisabled) return false; // Return false if the date is disabled
   if (!query.isFetched) return timesForDate; // Return times or empty array if loading
-  return timesForDate.length ? timesForDate : generateAvailableSlots(date); // Return times or full day slots
+
+  // If there are no time slots left/avail today, return false and not an empty array for navigate
+  const generatedDates = generateAvailableSlots(date);
+  if (!generatedDates.length) return false;
+
+  return timesForDate.length ? timesForDate : generatedDates; // Return times or full day slots
 };
 
 // Map events to their respective dates (date as key, events as value)
@@ -126,11 +131,6 @@ export function sortDatesTimes(events) {
   const eventMap = mapEvents(events);
   const sortedTimes = new Map();
   const disabledDates = [];
-  const currentMinutes = timeToMinutes(
-    formatInTimeZone(new Date(), timeZone, "HH:mm")
-  );
-
-  const endBufferMinutes = timeToMinutes(endTime) - timeBuffer;
 
   eventMap.forEach((events, day) => {
     const slots = generateAvailableSlots(day, events);
@@ -144,11 +144,33 @@ export function sortDatesTimes(events) {
 
   // If the current time is after endTime (inc. buffer) or there isn't 15 min left
   // before end time for another slot insert today in disabledDates
+  const today =
+    userTimeZone === timeZone ? new Date() : toZonedTime(new Date(), timeZone);
+  const currentMinutes = timeToMinutes(format(today, "HH:mm"));
+  const endBufferMinutes = timeToMinutes(endTime) - timeBuffer;
+
   if (
     currentMinutes >= endBufferMinutes ||
     endBufferMinutes - currentMinutes <= 15
   ) {
-    disabledDates.push(toZonedTime(new Date(), timeZone));
+    disabledDates.push(today);
+  }
+
+  const currentDate = new Date();
+  const currentZoneTime = Number(formatInTimeZone(currentDate, timeZone, "i"));
+  const localTime = Number(format(currentDate, "i"));
+
+  if (currentZoneTime < localTime) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayMinutes =
+      formatInTimeZone(new Date(), timeZone, "i") - timeBuffer;
+
+    // Get available slots for yesterday
+    const yesterdaySlots = generateAvailableSlots(yesterday, events);
+    if (yesterdaySlots.length < 1 && currentMinutes < yesterdayMinutes) {
+      disabledDates.push(yesterday); // Still valid slots for yesterday
+    }
   }
 
   return { disabledDates, sortedTimes };

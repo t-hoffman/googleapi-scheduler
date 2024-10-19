@@ -1,25 +1,37 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEvents, getShowTimes } from "../hooks/useEvents";
+import { useEvents, getShowTimes, maxDate, timeZone } from "../hooks/useEvents";
 import ScheduleForm from "./ScheduleForm";
+import { toZonedTime } from "date-fns-tz";
+import { format, isSameDay } from "date-fns";
 
 export default function ShowTimes() {
   // console.log("<SHOWTIMES />");
   const [showForm, setShowForm] = useState({ selectedTime: false });
-  const { dateId } = useParams();
+  let { month, day, year } = useParams();
   const navigate = useNavigate();
-
-  const date = new Date(Number(dateId));
-  const selectedDate = date.toDateString();
   const query = useEvents();
 
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  const selectedDate = date.toDateString();
+  const minDate = toZonedTime(new Date(), timeZone);
   const showTimes = getShowTimes(selectedDate, query);
+
+  useEffect(() => {
+    if (
+      (date < minDate && !isSameDay(date, minDate)) ||
+      (date > maxDate && !isSameDay(date, maxDate)) ||
+      !showTimes
+    ) {
+      navigate("/");
+    }
+  }, [date, minDate, maxDate, showTimes]);
 
   return (
     <>
       {!showForm.selectedTime && (
         <>
-          <h1>ShowTimes for {selectedDate}</h1>
+          <h1>ShowTimes {format(date, "MMM do, yyyy")}</h1>
           <TimeList showTimes={showTimes} setShowForm={setShowForm} />
         </>
       )}
@@ -49,12 +61,6 @@ export default function ShowTimes() {
 
 */
 function TimeList({ showTimes, setShowForm }) {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!!!showTimes) navigate("/");
-  }, [showTimes]);
-
   return (
     showTimes && (
       <ul style={{ listStyle: "none" }}>

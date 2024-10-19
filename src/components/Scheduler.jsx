@@ -9,7 +9,7 @@ import {
   useEvents,
   userTimeZone,
 } from "../hooks/useEvents";
-import { isBefore, isSameDay } from "date-fns";
+import { format, isBefore, isSameDay } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 
 export default function Scheduler() {
@@ -21,7 +21,8 @@ export default function Scheduler() {
   const defaultView = location.state?.defaultView || new Date();
 
   const handleClick = (e) => {
-    navigate(`/schedule/${e.getTime()}`, {
+    const dateParam = format(e, "LL/dd/y");
+    navigate(`/schedule/${dateParam}`, {
       state: { defaultView },
     });
   };

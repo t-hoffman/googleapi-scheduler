@@ -1,6 +1,11 @@
 import { format } from "date-fns";
 import React, { useState } from "react";
-import { setTimeOnDate, useAddEvent, timeZone } from "../hooks/useEvents";
+import {
+  setTimeOnDate,
+  useAddEvent,
+  timeZone,
+  userTimeZone,
+} from "../hooks/useEvents";
 import { useNavigate } from "react-router-dom";
 
 const initialState = {
@@ -128,7 +133,11 @@ export default function ScheduleForm({ date, selectedTime }) {
         phoneNumber
       )} - ${email}`;
 
-    mutation.mutate({ startDate, endDate, summary, timeZone });
+    try {
+      mutation.mutate({ startDate, endDate, summary, timeZone: userTimeZone });
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   return (
@@ -137,43 +146,53 @@ export default function ScheduleForm({ date, selectedTime }) {
       <h3>
         {formattedDate} from {selectedTime}:
       </h3>
-      {formFields.map((field, idx) => (
-        <React.Fragment key={idx}>
-          <div className="d-flex w-75 pt-2">
-            <div className="flex-grow-1 text-end">
-              <b>{field.title}:</b>
+      <div className="container w-100">
+        {formFields.map((field, idx) => (
+          <React.Fragment key={idx}>
+            <div className="row row-cols-2 pt-2">
+              <div className="col text-end">
+                <div className="g-start-1">
+                  <b>{field.title}:</b>
+                </div>
+              </div>
+              <div className="col text-start">
+                <div className="g-start-2">
+                  {mutation.isSuccess ? (
+                    state[field.name]
+                  ) : (
+                    <input
+                      type={field.type}
+                      name={field.name}
+                      onChange={(e) => handleChange(e, field)}
+                      value={state[field.name]}
+                      autoCapitalize={field.autoCapitalize ? "on" : "off"}
+                      style={{
+                        ...(field.autoCapitalize && {
+                          textTransform: "capitalize",
+                        }),
+                        ...(errors[field.name] && {
+                          border: "1px solid red",
+                          borderRadius: 2.5,
+                        }),
+                      }}
+                      autoComplete="on"
+                      disabled={mutation.isLoading}
+                    />
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="ps-2">
-              {mutation.isSuccess ? (
-                state[field.name]
-              ) : (
-                <input
-                  type={field.type}
-                  name={field.name}
-                  onChange={(e) => handleChange(e, field)}
-                  value={state[field.name]}
-                  autoCapitalize={field.autoCapitalize ? "on" : "off"}
-                  style={{
-                    ...(field.autoCapitalize && {
-                      textTransform: "capitalize",
-                    }),
-                    ...(errors[field.name] && { border: "1px solid red" }),
-                  }}
-                  autoComplete="on"
-                  disabled={mutation.isLoading}
-                />
-              )}
-            </div>
-          </div>
-          <div>
             {errors[field.name] && (
-              <p style={{ color: "red", fontSize: "0.8em" }}>
+              <div
+                className="w-100 text-center"
+                style={{ color: "red", fontSize: "0.8em" }}
+              >
                 {errors[field.name]}
-              </p>
+              </div>
             )}
-          </div>
-        </React.Fragment>
-      ))}
+          </React.Fragment>
+        ))}
+      </div>
       <div
         className="w-100 text-center pt-3"
         style={{ display: mutation.isSuccess && "none" }}
