@@ -5,7 +5,7 @@ import { toZonedTime } from "date-fns-tz";
 // Scheduler configuration settings
 const scheduleConfig = {
     startTime: "09:00",
-    endTime: "19:45",
+    endTime: "12:00",
     openSaturday: false,
     openSunday: false,
     timeBuffer: 30, // Buffer time before/after events
@@ -77,6 +77,7 @@ function useAddEvent() {
   const optimisticUpdate = (values) => {
     const prevCache = queryClient.getQueryData(["events"]);
     const newEvent = {
+      id: Date.now(),
       summary: values.summary,
       start: {
         dateTime: values.startDate,
@@ -87,32 +88,39 @@ function useAddEvent() {
         timeZone,
       },
     };
-    console.log(newEvent);
-    const optimisticEvents = [...prevCache.events, newEvent];
-    optimisticEvents.sort(
+
+    const optimisticEvents = [...prevCache.events, newEvent].sort(
       (a, b) =>
         new Date(a.start.dateTime || a.start.date).getTime() -
-        new Date(b.end.dateTime || b.end.date).getTime()
+        new Date(b.start.dateTime || b.start.date).getTime()
     );
     const { disabledDates, sortedTimes } = sortDatesTimes(optimisticEvents);
-
-    queryClient.setQueryData(["events"], {
+    const updatedCache = {
       events: optimisticEvents,
       disabledDates,
       sortedTimes,
-    });
+    };
 
-    return () => queryClient.setQueryData(["events"], prevCache);
+    queryClient.setQueryData(["events"], (old) => ({
+      ...old,
+      ...updatedCache,
+    }));
+
+    // Ensure context for rollback - restores previous state
+    return prevCache;
   };
 
   return useMutation({
     mutationFn: postEvent,
     onMutate: optimisticUpdate,
     onSuccess: (data) => {
-      queryClient.refetchQueries({ queryKey: ["events"] });
+      // queryClient.refetchQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       console.log("Form successfully submitted: ", data);
     },
-    onError: (error, values, rollback) => rollback(),
+    onError: (error, values, context) => {
+      queryClient.setQueryData(["events"], context);
+    },
   });
 }
 

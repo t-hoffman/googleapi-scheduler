@@ -1,11 +1,6 @@
 import { format } from "date-fns";
 import React, { useState } from "react";
-import {
-  setTimeOnDate,
-  useAddEvent,
-  timeZone,
-  userTimeZone,
-} from "../hooks/useEvents";
+import { setTimeOnDate, useAddEvent, userTimeZone } from "../hooks/useEvents";
 import { useNavigate } from "react-router-dom";
 
 const initialState = {
@@ -77,7 +72,7 @@ const validateFormData = (data) => {
   return errors;
 };
 
-export default function ScheduleForm({ date, selectedTime }) {
+export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
   const [state, setState] = useState(initialState);
   const [errors, setErrors] = useState({});
   const mutation = useAddEvent();
@@ -134,6 +129,7 @@ export default function ScheduleForm({ date, selectedTime }) {
       )} - ${email}`;
 
     try {
+      onSubmitForm();
       mutation.mutate({ startDate, endDate, summary, timeZone: userTimeZone });
     } catch (err) {
       console.log(err);
@@ -200,7 +196,7 @@ export default function ScheduleForm({ date, selectedTime }) {
         <button
           className="btn btn-warning"
           onClick={handleSubmit}
-          disabled={mutation.isLoading}
+          disabled={mutation.isLoading || mutation.isSuccess}
         >
           {mutation.isLoading ? "Submitting..." : "Submit"}
         </button>

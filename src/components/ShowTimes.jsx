@@ -8,6 +8,7 @@ import { format, isSameDay } from "date-fns";
 export default function ShowTimes() {
   // console.log("<SHOWTIMES />");
   const [showForm, setShowForm] = useState({ selectedTime: false });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   let { month, day, year } = useParams();
   const navigate = useNavigate();
   const query = useEvents();
@@ -21,11 +22,20 @@ export default function ShowTimes() {
     if (
       (date < minDate && !isSameDay(date, minDate)) ||
       (date > maxDate && !isSameDay(date, maxDate)) ||
-      !showTimes
+      (!showTimes && !isSubmitting)
     ) {
       navigate("/");
     }
-  }, [date, minDate, maxDate, showTimes]);
+  }, [date, minDate, maxDate, isSubmitting, showTimes]);
+
+  const backButton = () => {
+    if (!showForm.selectedTime) {
+      navigate("/");
+    } else {
+      setShowForm({ selectedTime: false });
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <>
@@ -36,19 +46,16 @@ export default function ShowTimes() {
         </>
       )}
       {showForm.selectedTime && (
-        <ScheduleForm date={date} selectedTime={showForm.selectedTime} />
+        <ScheduleForm
+          date={date}
+          selectedTime={showForm.selectedTime}
+          onSubmitForm={() => {
+            setIsSubmitting(true);
+          }}
+        />
       )}
       <p>&nbsp;</p>
-      <button
-        className="btn btn-secondary"
-        onClick={() =>
-          showForm.selectedTime
-            ? setShowForm({ selectedTime: false })
-            : navigate("/", {
-                state: { defaultView: date },
-              })
-        }
-      >
+      <button className="btn btn-secondary" onClick={backButton}>
         Back
       </button>
     </>
