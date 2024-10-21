@@ -80,40 +80,37 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
       <h3>
         {formattedDate} from {selectedTime}:
       </h3>
-      <div className="container w-100 pe-5">
+      <div className="container">
         {formFields.map((field, idx) => (
           <React.Fragment key={idx}>
-            <div className="row row-cols-2 pt-2">
-              <div className="col text-end">
-                <div className="g-start-1">
-                  <b>{field.title}:</b>
-                </div>
+            <div className="row pt-2">
+              <div className="col text-end formFieldAbout">
+                <b>{field.title}:</b>
               </div>
-              <div className="col text-start">
-                <div className="g-start-2">
-                  {mutation.isSuccess ? (
-                    state[field.name]
-                  ) : (
-                    <input
-                      type={field.type}
-                      name={field.name}
-                      onChange={(e) => handleChange(e, field)}
-                      value={state[field.name]}
-                      autoCapitalize={field.autoCapitalize ? "on" : "off"}
-                      style={{
-                        ...(field.autoCapitalize && {
-                          textTransform: "capitalize",
-                        }),
-                        ...(errors[field.name] && {
-                          border: "1px solid red",
-                          borderRadius: 2.5,
-                        }),
-                      }}
-                      autoComplete="on"
-                      disabled={mutation.isLoading}
-                    />
-                  )}
-                </div>
+              <div className="col-auto p-0 text-start">
+                {mutation.isSuccess ? (
+                  state[field.name]
+                ) : (
+                  <input
+                    type={field.type}
+                    name={field.name}
+                    onChange={(e) => handleChange(e, field)}
+                    value={state[field.name]}
+                    autoCapitalize={field.autoCapitalize ? "on" : "off"}
+                    style={{
+                      ...(field.autoCapitalize && {
+                        textTransform: "capitalize",
+                      }),
+                      ...(errors[field.name] && {
+                        border: "1px solid red",
+                        borderRadius: 2.5,
+                      }),
+                    }}
+                    autoComplete="on"
+                    disabled={mutation.isLoading}
+                    className="w-100"
+                  />
+                )}
               </div>
             </div>
             {errors[field.name] && (

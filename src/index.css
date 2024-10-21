@@ -72,3 +72,9 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+@media (max-width: 375px) {
+  body {
+    font-size: 0.9rem;
+  }
+}
