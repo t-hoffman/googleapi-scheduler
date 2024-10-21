@@ -136,26 +136,27 @@ function useAddEvent() {
 
 function useDeleteEvent(eventId) {
   const queryClient = useQueryClient();
+  const googleToken = sessionStorage.getItem("googleToken");
 
   return useMutation({
     mutationFn: async () => {
-      try {
-        const resp = await fetch(`${apiUrl}/events/delete`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ eventId }),
-        });
-
-        return await resp.json();
-      } catch (err) {
-        console.log("Error deleting event. ", err);
+      const resp = await fetch(`${apiUrl}/events/delete`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Baerer ${googleToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ eventId }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        throw new Error(data.message || response.statusText);
       }
     },
     onError: (err) => console.log("Error: ", err),
     onMutate: (values) => {
       console.log("ONMUTATE:", eventId);
+      return queryClient.getQueryData(["events"]);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["events"] });

@@ -78,7 +78,7 @@ export function Home() {
       <div className="container mt-5">
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           {!user && (
-            <div className="row">
+            <div className="row mb-3">
               <div className="col-auto">
                 <GoogleLogin
                   buttonText="Sign in with Google"
@@ -142,7 +142,6 @@ const Event = ({ date, event, user }) => {
               />
             )}
           </button>
-          {isError && error}
         </div>
       )}
     </div>
