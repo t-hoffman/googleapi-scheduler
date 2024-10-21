@@ -1,6 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Calendar from "react-calendar";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   maxDate,
   openSaturday,
@@ -14,17 +14,13 @@ import { toZonedTime } from "date-fns-tz";
 
 export default function Scheduler() {
   // console.log("<SCHEDULER />");
-  const location = useLocation();
   const navigate = useNavigate();
   const query = useEvents(),
     { disabledDates } = query.data;
-  const defaultView = location.state?.defaultView || new Date();
 
-  const handleClick = (e) => {
-    const dateParam = format(e, "LL/dd/y");
-    navigate(`/schedule/${dateParam}`, {
-      state: { defaultView },
-    });
+  const handleClick = (value, event) => {
+    const dateParam = format(value, "LL/dd/y");
+    navigate(`/schedule/${dateParam}`);
   };
 
   const checkWeekend = (date) => {
@@ -57,14 +53,14 @@ export default function Scheduler() {
     }
   };
 
-  useEffect(() => {
-    // For Chrome browser since it persist BrowserHistory (useLocation) state between sessions
-    const handleRefresh = () =>
-      navigate(location.pathname, { state: { defaultView: new Date() } });
-    window.addEventListener("beforeunload", handleRefresh);
+  // useEffect(() => {
+  //   // For Chrome browser since it persist BrowserHistory (useLocation) state between sessions
+  //   const handleRefresh = () =>
+  //     navigate(location.pathname, { state: { defaultView: new Date() } });
+  //   window.addEventListener("beforeunload", handleRefresh);
 
-    return () => window.removeEventListener("beforeunload", handleRefresh);
-  }, [location.pathname, navigate]);
+  //   return () => window.removeEventListener("beforeunload", handleRefresh);
+  // }, [location.pathname, navigate]);
 
   return (
     <div>
@@ -76,7 +72,6 @@ export default function Scheduler() {
         onChange={handleClick}
         tileClassName={tileClassName}
         tileDisabled={tileDisabled}
-        value={defaultView}
       />
     </div>
   );

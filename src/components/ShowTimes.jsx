@@ -7,7 +7,7 @@ import { format, isSameDay } from "date-fns";
 
 export default function ShowTimes() {
   // console.log("<SHOWTIMES />");
-  const [showForm, setShowForm] = useState({ selectedTime: false });
+  const [selectedTime, setSelectedTime] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   let { month, day, year } = useParams();
   const navigate = useNavigate();
@@ -20,6 +20,7 @@ export default function ShowTimes() {
 
   useEffect(() => {
     if (
+      isNaN(date) ||
       (date < minDate && !isSameDay(date, minDate)) ||
       (date > maxDate && !isSameDay(date, maxDate)) ||
       (!showTimes && !isSubmitting)
@@ -28,37 +29,39 @@ export default function ShowTimes() {
     }
   }, [date, minDate, maxDate, isSubmitting, showTimes]);
 
-  const backButton = () => {
-    if (!showForm.selectedTime) {
+  const handleBackButton = () => {
+    if (!selectedTime) {
       navigate("/");
     } else {
-      setShowForm({ selectedTime: false });
+      setSelectedTime(false);
       setIsSubmitting(false);
     }
   };
 
   return (
-    <>
-      {!showForm.selectedTime && (
-        <>
-          <h1>ShowTimes {format(date, "MMM do, yyyy")}</h1>
-          <TimeList showTimes={showTimes} setShowForm={setShowForm} />
-        </>
-      )}
-      {showForm.selectedTime && (
-        <ScheduleForm
-          date={date}
-          selectedTime={showForm.selectedTime}
-          onSubmitForm={() => {
-            setIsSubmitting(true);
-          }}
-        />
-      )}
-      <p>&nbsp;</p>
-      <button className="btn btn-secondary" onClick={backButton}>
-        Back
-      </button>
-    </>
+    !isNaN(date) && (
+      <>
+        {!selectedTime && (
+          <>
+            <h1>ShowTimes {format(date, "MMM do, yyyy")}</h1>
+            <TimeList showTimes={showTimes} setSelectedTime={setSelectedTime} />
+          </>
+        )}
+        {selectedTime && (
+          <ScheduleForm
+            date={date}
+            selectedTime={selectedTime}
+            onSubmitForm={() => {
+              setIsSubmitting(true);
+            }}
+          />
+        )}
+        <p>&nbsp;</p>
+        <button className="btn btn-secondary" onClick={handleBackButton}>
+          Back
+        </button>
+      </>
+    )
   );
 }
 
@@ -67,7 +70,7 @@ export default function ShowTimes() {
   REFACTOR: MOVE <ScheduleForm /> TO THIS COMPONENT
 
 */
-function TimeList({ showTimes, setShowForm }) {
+function TimeList({ showTimes, setSelectedTime }) {
   return (
     showTimes && (
       <ul style={{ listStyle: "none" }}>
@@ -76,12 +79,7 @@ function TimeList({ showTimes, setShowForm }) {
             <li className="mt-3" key={idx}>
               <button
                 className="btn btn-primary"
-                onClick={() =>
-                  setShowForm((prevState) => ({
-                    ...prevState,
-                    selectedTime: time,
-                  }))
-                }
+                onClick={() => setSelectedTime(time)}
               >
                 {time}
               </button>
