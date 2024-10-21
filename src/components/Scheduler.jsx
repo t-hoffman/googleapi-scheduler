@@ -17,7 +17,7 @@ export default function Scheduler() {
   const navigate = useNavigate();
   const query = useEvents(),
     { disabledDates } = query.data;
-
+  console.log("QUERY:", query.data);
   const handleClick = (value, event) => {
     const dateParam = format(value, "LL/dd/y");
     navigate(`/schedule/${dateParam}`);
@@ -53,17 +53,8 @@ export default function Scheduler() {
     }
   };
 
-  // useEffect(() => {
-  //   // For Chrome browser since it persist BrowserHistory (useLocation) state between sessions
-  //   const handleRefresh = () =>
-  //     navigate(location.pathname, { state: { defaultView: new Date() } });
-  //   window.addEventListener("beforeunload", handleRefresh);
-
-  //   return () => window.removeEventListener("beforeunload", handleRefresh);
-  // }, [location.pathname, navigate]);
-
   return (
-    <div>
+    <div className="container">
       <h2>Please select a time:</h2>
       <Calendar
         calendarType="gregory"

@@ -55,6 +55,15 @@ const getEvents = async () => {
   return { events, disabledDates, sortedTimes };
 };
 
+function useEvents() {
+  return useQuery({
+    queryKey: ["events"],
+    queryFn: getEvents,
+    refetchInterval: queryStaleTime,
+    initialData: initialEventData,
+  });
+}
+
 function useAddEvent() {
   const queryClient = useQueryClient();
 
@@ -119,17 +128,44 @@ function useAddEvent() {
       console.log("Form successfully submitted: ", data);
     },
     onError: (error, values, context) => {
+      console.log("rollback");
       queryClient.setQueryData(["events"], context);
     },
   });
 }
 
-function useEvents() {
-  return useQuery({
-    queryKey: ["events"],
-    queryFn: getEvents,
-    refetchInterval: queryStaleTime,
-    initialData: initialEventData,
+function useDeleteEvent(eventId) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      try {
+        const resp = await fetch(`${apiUrl}/events/delete`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ eventId }),
+        });
+
+        return await resp.json();
+      } catch (err) {
+        console.log("Error deleting event. ", err);
+      }
+    },
+    onError: (err) => console.log("Error: ", err),
+    onMutate: (values) => {
+      console.log("ONMUTATE:", eventId);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      const prevCache = queryClient.getQueryData(["events"]);
+      const newEvents = prevCache.events.filter(({ id }) => id !== eventId);
+      const { disabledDates, sortedTimes } = sortDatesTimes(newEvents);
+      const newData = { events: newEvents, disabledDates, sortedTimes };
+      queryClient.setQueryData(["events"], newData);
+      console.log("Successfully deleted event: ", data);
+    },
   });
 }
 
@@ -144,6 +180,7 @@ export {
   endTime,
   timeZone,
   timeBuffer,
+  useDeleteEvent,
   useEvents,
   useAddEvent,
   userTimeZone,

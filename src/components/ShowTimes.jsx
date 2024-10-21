@@ -40,27 +40,28 @@ export default function ShowTimes() {
 
   return (
     !isNaN(date) && (
-      <>
+      <div className="container">
         {!selectedTime && (
-          <>
-            <h1>ShowTimes {format(date, "MMM do, yyyy")}</h1>
+          <div className="row">
+            <h2>ShowTimes {format(date, "MMM do, yyyy")}</h2>
             <TimeList showTimes={showTimes} setSelectedTime={setSelectedTime} />
-          </>
+          </div>
         )}
-        {selectedTime && (
-          <ScheduleForm
-            date={date}
-            selectedTime={selectedTime}
-            onSubmitForm={() => {
-              setIsSubmitting(true);
-            }}
-          />
-        )}
-        <p>&nbsp;</p>
-        <button className="btn btn-secondary" onClick={handleBackButton}>
+        <div className="row">
+          {selectedTime && (
+            <ScheduleForm
+              date={date}
+              selectedTime={selectedTime}
+              onSubmitForm={() => {
+                setIsSubmitting(true);
+              }}
+            />
+          )}
+        </div>
+        <button className="mt-4 btn btn-secondary" onClick={handleBackButton}>
           Back
         </button>
-      </>
+      </div>
     )
   );
 }
