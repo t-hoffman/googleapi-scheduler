@@ -1,9 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Scheduler from "./components/Scheduler";
 import ShowTimes from "./components/ShowTimes";
 import { useDeleteEvent, useEvents } from "./hooks/useEvents";
-import { QueryClient, QueryClientProvider, useMutation } from "react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useMutationState,
+} from "@tanstack/react-query";
 import { BarLoader } from "react-spinners";
 import {
   GoogleOAuthProvider,
@@ -15,22 +19,6 @@ const queryClient = new QueryClient();
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const CALENDAR_ID = import.meta.env.VITE_GOOGLE_CALENDAR_ID;
 
-// const parseJwt = (token) => {
-//   try {
-//     const base64Url = token.split('.')[1];
-//     const base64 = decodeURIComponent(
-//       atob(base64Url)
-//         .split('')
-//         .map((c) => `%${('00' + c.charCodeAt(0).toString(16)).slice(-2)}`)
-//         .join('')
-//     );
-//     return JSON.parse(base64);
-//   } catch (error) {
-//     console.error('Failed to parse JWT:', error);
-//     return null; // Return null if parsing fails
-//   }
-// };
-
 const parseJwt = (token) => {
   try {
     return JSON.parse(atob(token.split(".")[1]));
@@ -40,11 +28,21 @@ const parseJwt = (token) => {
 };
 
 export function Home() {
-  // console.log("<HOME />");
-  const userData = JSON.parse(sessionStorage.getItem("googleUserInfo"));
-  const [user, setUser] = useState(userData);
+  console.log("<HOME />");
+  const getUserData = () => {
+    const userData = JSON.parse(sessionStorage.getItem("googleUserInfo"));
+    if (!userData) return null;
+    if (Date.now() > userData.exp * 1000) {
+      sessionStorage.removeItem("googleToken");
+      sessionStorage.removeItem("googleUserInfo");
+      return null;
+    }
+
+    return userData;
+  };
+  const [user, setUser] = useState(getUserData());
   const query = useEvents();
-  const { dataUpdatedAt, data } = query;
+  const { dataUpdatedAt } = query;
 
   const handleSuccess = (resp) => {
     const userData = parseJwt(resp.credential);
@@ -64,12 +62,12 @@ export function Home() {
     sessionStorage.setItem("googleUserInfo", null);
   };
 
-  const mapEvents = data.events?.map((event, idx) => {
+  const mapEvents = query.data.events.map((event, idx) => {
     const date = event.start.dateTime
       ? new Date(event.start.dateTime).toDateString()
       : new Date(event.start.date).toDateString();
 
-    return <Event date={date} event={event} user={user} key={idx} />;
+    return <Event date={date} event={event} user={user} key={event.id} />;
   });
 
   return (
@@ -78,12 +76,14 @@ export function Home() {
       <div className="container mt-5">
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           {!user && (
-            <div className="row mb-3">
+            <div className="row g-0 mb-3 justify-content-end">
               <div className="col-auto">
                 <GoogleLogin
-                  buttonText="Sign in with Google"
                   onSuccess={handleSuccess}
                   onFailure={handleFailure}
+                  size="large"
+                  shape="pill"
+                  theme="filled_black"
                 />
               </div>
             </div>
@@ -106,7 +106,7 @@ export function Home() {
 }
 
 const Event = ({ date, event, user }) => {
-  const { error, mutate, isError, isLoading } = useDeleteEvent(event.id);
+  const { mutate, isPending } = useDeleteEvent(event.id);
 
   return (
     <div
@@ -124,10 +124,11 @@ const Event = ({ date, event, user }) => {
         <div className="col-auto align-self-center">
           <button
             className="btn btn-danger opacity-50"
+            disabled={isPending}
             style={{ width: "75px" }}
             onClick={mutate}
           >
-            {!isLoading ? (
+            {!isPending ? (
               "Delete"
             ) : (
               <BarLoader

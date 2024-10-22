@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "react-query";
+import {
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { getShowTimes, setTimeOnDate, sortDatesTimes } from "../utils/events";
 import { toZonedTime } from "date-fns-tz";
 
@@ -8,7 +13,7 @@ const scheduleConfig = {
     endTime: "12:00",
     openSaturday: false,
     openSunday: false,
-    timeBuffer: 30, // Buffer time before/after events
+    timeBuffer: 0, // Buffer time before/after events
     timeZone: "America/Los_Angeles",
     userTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     queryStaleTime: 1000 * 60 * 1,
@@ -46,6 +51,7 @@ const initialEventData = {
 };
 
 const getEvents = async () => {
+  console.log("getting");
   const response = await fetch(`${apiUrl}/events/`);
   if (!response.ok) {
     throw new Error("Failed to fetch events.");
@@ -56,11 +62,20 @@ const getEvents = async () => {
 };
 
 function useEvents() {
+  // Make sure there is no request in progress so as not to override the optimistic update
+  // This is the method I found since the app navigates to another route
+  const mutation = useMutationState({
+      filters: { mutationKey: ["add_event"], status: "pending" },
+      select: (mutation) => mutation.state.status,
+    }),
+    status = mutation[mutation.length - 1];
+
   return useQuery({
     queryKey: ["events"],
     queryFn: getEvents,
     refetchInterval: queryStaleTime,
     initialData: initialEventData,
+    enabled: status !== "pending",
   });
 }
 
@@ -83,63 +98,62 @@ function useAddEvent() {
     return data;
   };
 
-  const optimisticUpdate = (values) => {
+  const optimisticUpdate = async (event) => {
+    await queryClient.cancelQueries({ queryKey: ["events"] });
     const prevCache = queryClient.getQueryData(["events"]);
-    const newEvent = {
-      id: Date.now(),
-      summary: values.summary,
-      start: {
-        dateTime: values.startDate,
-        timeZone,
-      },
-      end: {
-        dateTime: values.endDate,
-        timeZone,
-      },
-    };
+    queryClient.setQueryData(["events"], (old) => {
+      const newEvent = {
+        id: event.id,
+        summary: event.summary,
+        start: {
+          dateTime: event.startDate,
+          timeZone: event.timeZone,
+        },
+        end: {
+          dateTime: event.endDate,
+          timeZone: event.timeZone,
+        },
+      };
+      const updatedEvents = [...old.events, newEvent].sort(
+        (a, b) =>
+          new Date(a.start.dateTime || a.start.date) -
+          new Date(b.start.dateTime || b.start.date)
+      );
+      const { disabledDates, sortedTimes } = sortDatesTimes(updatedEvents);
 
-    const optimisticEvents = [...prevCache.events, newEvent].sort(
-      (a, b) =>
-        new Date(a.start.dateTime || a.start.date).getTime() -
-        new Date(b.start.dateTime || b.start.date).getTime()
-    );
-    const { disabledDates, sortedTimes } = sortDatesTimes(optimisticEvents);
-    const updatedCache = {
-      events: optimisticEvents,
-      disabledDates,
-      sortedTimes,
-    };
+      return {
+        ...old,
+        disabledDates,
+        sortedTimes,
+        events: updatedEvents,
+      };
+    });
 
-    queryClient.setQueryData(["events"], (old) => ({
-      ...old,
-      ...updatedCache,
-    }));
-
-    // Ensure context for rollback - restores previous state
-    return prevCache;
+    return { prevCache };
   };
 
   return useMutation({
+    mutationKey: ["add_event"],
     mutationFn: postEvent,
     onMutate: optimisticUpdate,
     onSuccess: (data) => {
-      // queryClient.refetchQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries(["events"]);
       console.log("Form successfully submitted: ", data);
     },
     onError: (error, values, context) => {
       console.log("rollback");
-      queryClient.setQueryData(["events"], context);
+      queryClient.setQueryData(["events"], context.prevCache);
     },
   });
 }
 
 function useDeleteEvent(eventId) {
   const queryClient = useQueryClient();
-  const googleToken = sessionStorage.getItem("googleToken");
 
   return useMutation({
+    mutationKey: ["delete_event"],
     mutationFn: async () => {
+      const googleToken = sessionStorage.getItem("googleToken");
       const resp = await fetch(`${apiUrl}/events/delete`, {
         method: "DELETE",
         headers: {
@@ -153,20 +167,25 @@ function useDeleteEvent(eventId) {
         throw new Error(data.message || response.statusText);
       }
     },
-    onError: (err) => console.log("Error: ", err),
-    onMutate: (values) => {
-      console.log("ONMUTATE:", eventId);
-      return queryClient.getQueryData(["events"]);
+    onMutate: () => queryClient.getQueryData(["events"]),
+    onError: (err, vars, context) => {
+      queryClient.setQueryData(["events"], context);
+      console.log("Error: ", err);
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
+    onSuccess: () => {
       const prevCache = queryClient.getQueryData(["events"]);
+      if (!prevCache || !prevCache.events) return;
+
       const newEvents = prevCache.events.filter(({ id }) => id !== eventId);
       const { disabledDates, sortedTimes } = sortDatesTimes(newEvents);
       const newData = { events: newEvents, disabledDates, sortedTimes };
       queryClient.setQueryData(["events"], newData);
-      console.log("Successfully deleted event: ", data);
+
+      console.log("Successfully deleted event: ", eventId);
     },
+    // onSettled: () => {
+    //   queryClient.invalidateQueries(["events"]);
+    // },
   });
 }
 

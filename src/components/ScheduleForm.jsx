@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { setTimeOnDate, useAddEvent, userTimeZone } from "../hooks/useEvents";
 import { useNavigate } from "react-router-dom";
 
@@ -32,6 +32,8 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
   const [errors, setErrors] = useState({});
   const mutation = useAddEvent();
   const navigate = useNavigate();
+  const eventId = useId();
+
   /*
         COMPLETE SECURTIY/VERIFICATIONS OF FORMDATA
   */
@@ -69,7 +71,13 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
 
     try {
       onSubmitForm();
-      mutation.mutate({ startDate, endDate, summary, timeZone: userTimeZone });
+      mutation.mutate({
+        startDate,
+        endDate,
+        summary,
+        timeZone: userTimeZone,
+        id: eventId,
+      });
     } catch (err) {
       console.log(err);
     }
@@ -78,7 +86,7 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
   const formProps = {
     errors,
     handleChange,
-    isLoading: mutation.isLoading,
+    isPending: mutation.isPending,
     isSuccess: mutation.isSuccess,
     state,
   };
@@ -104,9 +112,9 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
           <button
             className="btn btn-warning"
             onClick={handleSubmit}
-            disabled={mutation.isLoading || mutation.isSuccess}
+            disabled={mutation.isPending || mutation.isSuccess}
           >
-            {mutation.isLoading ? "Submitting..." : "Submit"}
+            {mutation.isPending ? "Submitting..." : "Submit"}
           </button>
         </div>
         {mutation.isError && (
@@ -139,7 +147,7 @@ const FormInput = ({
   errors,
   field,
   handleChange,
-  isLoading,
+  isPending,
   isSuccess,
   state,
 }) => (
@@ -168,7 +176,7 @@ const FormInput = ({
               }),
             }}
             autoComplete="on"
-            disabled={isLoading}
+            disabled={isPending}
             className="w-100"
           />
         )}

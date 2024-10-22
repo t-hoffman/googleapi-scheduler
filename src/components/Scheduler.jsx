@@ -17,7 +17,7 @@ export default function Scheduler() {
   const navigate = useNavigate();
   const query = useEvents(),
     { disabledDates } = query.data;
-  console.log("QUERY:", query.data);
+
   const handleClick = (value, event) => {
     const dateParam = format(value, "LL/dd/y");
     navigate(`/schedule/${dateParam}`);
