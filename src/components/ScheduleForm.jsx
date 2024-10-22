@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import React, { useId, useState } from "react";
 import { setTimeOnDate, useAddEvent, userTimeZone } from "../hooks/useEvents";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const initialState = {
   firstName: "",
@@ -31,6 +31,7 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
   const [state, setState] = useState(initialState);
   const [errors, setErrors] = useState({});
   const mutation = useAddEvent();
+  const location = useLocation();
   const navigate = useNavigate();
   const eventId = useId();
 
@@ -131,7 +132,7 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
               className="btn btn-success"
               onClick={(e) => {
                 e.preventDefault();
-                navigate("/");
+                navigate(location.state.prevPath || "/");
               }}
             >
               Home

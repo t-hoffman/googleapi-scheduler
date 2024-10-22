@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import Calendar from "react-calendar";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   maxDate,
   openSaturday,
@@ -14,13 +14,16 @@ import { toZonedTime } from "date-fns-tz";
 
 export default function Scheduler() {
   // console.log("<SCHEDULER />");
+  const location = useLocation();
   const navigate = useNavigate();
   const query = useEvents(),
     { disabledDates } = query.data;
 
   const handleClick = (value, event) => {
     const dateParam = format(value, "LL/dd/y");
-    navigate(`/schedule/${dateParam}`);
+    navigate(`/schedule/${dateParam}`, {
+      state: { prevPath: location.pathname },
+    });
   };
 
   const checkWeekend = (date) => {

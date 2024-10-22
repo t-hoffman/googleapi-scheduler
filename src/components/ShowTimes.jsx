@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEvents, getShowTimes, maxDate, timeZone } from "../hooks/useEvents";
 import ScheduleForm from "./ScheduleForm";
 import { toZonedTime } from "date-fns-tz";
@@ -10,6 +10,7 @@ export default function ShowTimes() {
   const [selectedTime, setSelectedTime] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   let { month, day, year } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const query = useEvents();
 
@@ -31,7 +32,7 @@ export default function ShowTimes() {
 
   const handleBackButton = () => {
     if (!selectedTime) {
-      navigate("/");
+      navigate(location.state.prevPath || "/");
     } else {
       setSelectedTime(false);
       setIsSubmitting(false);
