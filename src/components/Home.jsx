@@ -18,7 +18,7 @@ export default function Homes() {
           </small>
         </h1>
         <div className="container text-center">
-          <EventList query={query} />
+          <EventList query={query} consult={true} />
         </div>
       </div>
     </div>

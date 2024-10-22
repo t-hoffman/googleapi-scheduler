@@ -3,8 +3,10 @@ import { useDeleteEvent } from "../hooks/useEvents";
 import { BarLoader } from "react-spinners";
 import { CALENDAR_ID } from "../context/GoogleAuth";
 
-export function EventList({ query }) {
+export function EventList({ query, user, consult }) {
   const { data } = query;
+  let consultCount = 0,
+    nonConsult = 0;
 
   return data.events.map((event) => {
     let noTime;
@@ -17,11 +19,39 @@ export function EventList({ query }) {
       ? new Date(event.start.dateTime).toDateString()
       : noTime.toDateString();
 
-    return <Event date={date} event={event} key={event.id} />;
+    const isConsult = event.summary.toLowerCase().includes("consult");
+
+    if (consult == null) {
+      consultCount++;
+      return (
+        <Event
+          date={date}
+          event={event}
+          user={user}
+          isEven={consultCount % 2 === 0}
+          key={event.id}
+        />
+      );
+    }
+
+    if ((consult === true && isConsult) || (consult === false && !isConsult)) {
+      nonConsult++;
+      return (
+        <Event
+          date={date}
+          event={event}
+          user={user}
+          isEven={nonConsult % 2 === 0}
+          key={event.id}
+        />
+      );
+    }
+
+    return null;
   });
 }
 
-export function Event({ date, event, user }) {
+export function Event({ date, event, isEven, user }) {
   const { mutate, isPending } = useDeleteEvent(event.id);
   const isConsult = event.summary.toLowerCase().includes("consult");
 
@@ -31,7 +61,7 @@ export function Event({ date, event, user }) {
       style={{ "--bs-border-opacity": 0.5 }}
     >
       <div className="col">
-        <b className="opacity-75">
+        <b className={`opacity-75 ${isEven && "text-secondary"}`}>
           {event.summary}
           <br />
           <span style={{ fontSize: "8pt" }}>{date}</span>
