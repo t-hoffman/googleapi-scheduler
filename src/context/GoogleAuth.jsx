@@ -58,7 +58,7 @@ export function GoogleAuth({ children }) {
   return (
     <GoogleAuthContext.Provider value={contextValue}>
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-        {!userInfo && userInfo.exp * 1000 > Date.now() ? (
+        {!userInfo || userInfo?.exp * 1000 > Date.now() ? (
           <div className="row g-0 mt-5 mb-3 justify-content-center">
             <div className="col-auto">
               <GoogleLogin
