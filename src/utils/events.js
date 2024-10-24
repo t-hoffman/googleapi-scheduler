@@ -86,9 +86,6 @@ function generateAvailableSlots(day, events = []) {
     if (isAvailable || events.length === 0) {
       slots.push(`${slotStart} - ${slotEnd}`);
     }
-    if (isToday) {
-      // console.log(slots);
-    }
   }
 
   return slots;
@@ -157,18 +154,19 @@ export function sortDatesTimes(events) {
   }
 
   const currentDate = new Date();
-  const currentZoneTime = Number(formatInTimeZone(currentDate, timeZone, "i"));
-  const localTime = Number(format(currentDate, "i"));
+  const zonedDay = Number(formatInTimeZone(currentDate, timeZone, "i"));
+  const localDay = Number(format(currentDate, "i"));
 
-  if (currentZoneTime < localTime) {
+  if (zonedDay < localDay) {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayMinutes =
       formatInTimeZone(new Date(), timeZone, "i") - timeBuffer;
 
     // Get available slots for yesterday
-    const yesterdaySlots = generateAvailableSlots(yesterday, events);
-    if (yesterdaySlots.length < 1 && currentMinutes < yesterdayMinutes) {
+    const yesterdayEvents = eventMap.get(yesterday.toDateString());
+    const yesterdaySlots = generateAvailableSlots(yesterday, yesterdayEvents);
+    if (yesterdaySlots.length < 1 || currentMinutes < yesterdayMinutes) {
       disabledDates.push(yesterday); // Still valid slots for yesterday
     }
   }

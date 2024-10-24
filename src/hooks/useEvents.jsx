@@ -9,11 +9,11 @@ import { toZonedTime } from "date-fns-tz";
 
 // Scheduler configuration settings
 const scheduleConfig = {
-    startTime: "09:00",
-    endTime: "12:00",
+    startTime: "10:00",
+    endTime: "13:00",
     openSaturday: false,
     openSunday: false,
-    timeBuffer: 0, // Buffer time before/after events
+    timeBuffer: 30, // Buffer time before/after events
     timeZone: "America/Los_Angeles",
     userTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     queryStaleTime: 1000 * 60 * 1,
@@ -73,8 +73,9 @@ function useEvents() {
   return useQuery({
     queryKey: ["events"],
     queryFn: getEvents,
-    refetchInterval: queryStaleTime,
     initialData: initialEventData,
+    refetchInterval: queryStaleTime,
+    refetchOnWindowFocus: true,
     enabled: status !== "pending",
   });
 }
@@ -164,7 +165,7 @@ function useDeleteEvent(eventId) {
       });
       const data = await resp.json();
       if (!resp.ok) {
-        throw new Error(data.message || response.statusText);
+        throw new Error(data.message || resp.statusText);
       }
     },
     onMutate: () => queryClient.getQueryData(["events"]),

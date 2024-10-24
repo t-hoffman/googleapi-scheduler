@@ -1,7 +1,8 @@
 import React from "react";
-import { useDeleteEvent } from "../hooks/useEvents";
+import { timeZone, useDeleteEvent, userTimeZone } from "../hooks/useEvents";
 import { BarLoader } from "react-spinners";
 import { CALENDAR_ID } from "../context/GoogleAuth";
+import { formatInTimeZone } from "date-fns-tz";
 
 export function EventList({ query, user, consult }) {
   const { data } = query;
@@ -15,10 +16,10 @@ export function EventList({ query, user, consult }) {
       noTime = new Date(year, month - 1, day);
       noTime.setHours(0, 0, 1);
     }
-    const date = event.start.dateTime
-      ? new Date(event.start.dateTime).toDateString()
-      : noTime.toDateString();
-
+    const dateObj = event.start.dateTime
+      ? new Date(event.start.dateTime)
+      : new Date(noTime);
+    const date = formatInTimeZone(dateObj, timeZone, "EEE MMM dd yyyy");
     const isConsult = event.summary.toLowerCase().includes("consult");
 
     if (consult == null) {

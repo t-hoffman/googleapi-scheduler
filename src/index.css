@@ -87,3 +87,13 @@ iframe {
     font-size: 0.9rem;
   }
 }
+
+@media (max-width: 770px) {
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  body div .row {
+    font-size: 0.9rem;
+  }
+}

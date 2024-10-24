@@ -123,7 +123,8 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
             <b style={{ color: "red" }}>Error: {mutation.error.message}</b>
           </p>
         )}
-        {mutation.isSuccess && (
+        {((import.meta.env.DEV && (mutation.isSuccess || mutation.isPending)) ||
+          mutation.isSuccess) && (
           <div>
             <p className="pt-4">
               <b style={{ color: "green" }}>Form submitted successfully!</b>

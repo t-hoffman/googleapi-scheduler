@@ -1,4 +1,4 @@
-import React, { createContext, useState } from "react";
+import React, { createContext, useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import {
   GoogleOAuthProvider,
@@ -30,7 +30,7 @@ const getUserData = () => {
   return userData;
 };
 
-export function GoogleAuth({ children }) {
+export function GoogleAuth() {
   const sessionData = JSON.parse(sessionStorage.getItem("googleUserInfo"));
   //   const tokenExpired = Date.now() > sessionData.exp * 1000;
   const [userInfo, setUserInfo] = useState(getUserData());
@@ -53,10 +53,14 @@ export function GoogleAuth({ children }) {
     setUserInfo(null);
   };
 
-  const contextValue = { userInfo, googleAuthLogout };
+  useEffect(() => {
+    const onWindowFocus = () => !getUserData() && setUserInfo(null);
+    window.addEventListener("focus", onWindowFocus);
+    return () => window.removeEventListener("focus", onWindowFocus);
+  }, []);
 
   return (
-    <GoogleAuthContext.Provider value={contextValue}>
+    <GoogleAuthContext.Provider value={{ userInfo, googleAuthLogout }}>
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
         {!userInfo || userInfo?.exp * 1000 < Date.now() ? (
           <div className="row g-0 mt-5 mb-3 justify-content-center">
