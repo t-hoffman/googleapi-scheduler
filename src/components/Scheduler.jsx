@@ -11,6 +11,8 @@ import {
 } from "../hooks/useEvents";
 import { format, isBefore, isSameDay } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
+import { NextIcon, PrevIcon } from "./Icons";
+import "../assets/Scheduler.css";
 
 export default function Scheduler() {
   // console.log("<SCHEDULER />");
@@ -52,7 +54,7 @@ export default function Scheduler() {
         isBefore(date, maxDate) &&
         !checkWeekend(date);
 
-      return isAvailable && "btn btn-primary border-3 border-dark";
+      return isAvailable && "btn btn-primary border-3 border-black";
     }
   };
 
@@ -66,6 +68,8 @@ export default function Scheduler() {
         onChange={handleClick}
         tileClassName={tileClassName}
         tileDisabled={tileDisabled}
+        nextLabel={<NextIcon />}
+        prevLabel={<PrevIcon />}
       />
     </div>
   );

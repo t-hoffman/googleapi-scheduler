@@ -10,12 +10,4 @@ export default defineConfig({
       value: "same-origin", // "same-origin-allow-popups"
     },
   },
-  optimizeDeps: {
-    // force: true,
-    esbuildOptions: {
-      loader: {
-        ".js": "jsx",
-      },
-    },
-  },
 });

@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import { useEvents } from "../hooks/useEvents";
 import { GoogleAuthContext } from "../context/GoogleAuth";
-import { Event, EventList } from "./Events";
+import { EventList } from "./Events";
 import Scheduler from "./Scheduler";
 
 export default function Admin() {

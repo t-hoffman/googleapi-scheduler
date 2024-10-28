@@ -6,8 +6,7 @@ import { formatInTimeZone } from "date-fns-tz";
 
 export function EventList({ query, user, consult }) {
   const { data } = query;
-  let consultCount = 0,
-    nonConsult = 0;
+  let eventCount = 0;
 
   return data.events.map((event) => {
     let noTime;
@@ -19,30 +18,27 @@ export function EventList({ query, user, consult }) {
     const dateObj = event.start.dateTime
       ? new Date(event.start.dateTime)
       : new Date(noTime);
+    /*
+
+    REVIEW THIS FOR DATES WITH ALL DAY EVENTS IN PERTH AUS TZ
+
+    */
     const date = formatInTimeZone(dateObj, timeZone, "EEE MMM dd yyyy");
     const isConsult = event.summary.toLowerCase().includes("consult");
 
-    if (consult == null) {
-      consultCount++;
+    if (
+      (consult === true && isConsult) ||
+      (consult === false && !isConsult) ||
+      consult === undefined ||
+      consult === null
+    ) {
+      eventCount++;
       return (
         <Event
           date={date}
           event={event}
           user={user}
-          isEven={consultCount % 2 === 0}
-          key={event.id}
-        />
-      );
-    }
-
-    if ((consult === true && isConsult) || (consult === false && !isConsult)) {
-      nonConsult++;
-      return (
-        <Event
-          date={date}
-          event={event}
-          user={user}
-          isEven={nonConsult % 2 === 0}
+          isEven={eventCount % 2 === 0}
           key={event.id}
         />
       );
