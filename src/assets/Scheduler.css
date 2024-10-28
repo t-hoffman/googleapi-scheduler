@@ -55,6 +55,9 @@
 .react-calendar__month-view__days {
   padding: 15px;
   color: #71717a;
+  margin-left: 3px;
+  display: grid !important;
+  grid-template-columns: 14.2857% 14.2857% 14.2857% 14.2857% 14.2857% 14.2857% 14.2857%;
 }
 
 .react-calendar__month-view__days button {

@@ -54,7 +54,7 @@ export default function Scheduler() {
         isBefore(date, maxDate) &&
         !checkWeekend(date);
 
-      return isAvailable && "btn btn-primary border-3 border-black";
+      return isAvailable && "btn btn-primary border-2 border-black";
     }
   };
 
