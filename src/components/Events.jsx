@@ -1,7 +1,7 @@
 import React from "react";
-import { timeZone, useDeleteEvent, userTimeZone } from "../hooks/useEvents";
+import { timeZone, useDeleteEvent } from "../hooks/useEvents";
 import { BarLoader } from "react-spinners";
-import { CALENDAR_ID } from "../context/GoogleAuth";
+import { CALENDAR_ID } from "../constants";
 import { formatInTimeZone } from "date-fns-tz";
 
 export function EventList({ query, user, consult }) {
@@ -15,9 +15,8 @@ export function EventList({ query, user, consult }) {
       noTime = new Date(year, month - 1, day);
       noTime.setHours(0, 0, 1);
     }
-    const dateObj = event.start.dateTime
-      ? new Date(event.start.dateTime)
-      : new Date(noTime);
+    const dateObj = new Date(noTime || event.start.dateTime);
+
     /*
 
     REVIEW THIS FOR DATES WITH ALL DAY EVENTS IN PERTH AUS TZ

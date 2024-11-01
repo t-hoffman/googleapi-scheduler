@@ -1,33 +1,21 @@
-import { format } from "date-fns";
 import React, { useId, useState } from "react";
+import { format } from "date-fns";
 import { setTimeOnDate, useAddEvent, userTimeZone } from "../hooks/useEvents";
 import { useLocation, useNavigate } from "react-router-dom";
+import FormInput from "./FormInput";
+import {
+  formFields,
+  initialState,
+  formatPhoneNumber,
+  validateFormData,
+} from "../utils/scheduleForm";
 
-const initialState = {
-  firstName: "",
-  lastName: "",
-  email: "",
-  phoneNumber: "",
-};
-
-const formFields = [
-  {
-    title: "First Name",
-    name: "firstName",
-    type: "text",
-    autoCapitalize: true,
-  },
-  {
-    title: "Last Name",
-    name: "lastName",
-    type: "text",
-    autoCapitalize: true,
-  },
-  { title: "Email", name: "email", type: "email" },
-  { title: "Phone Number", name: "phoneNumber", type: "tel" },
-];
-
-export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
+export default function ScheduleForm({
+  date,
+  selectedTime,
+  onSubmitForm,
+  setSelectedDate,
+}) {
   const [state, setState] = useState(initialState);
   const [errors, setErrors] = useState({});
   const mutation = useAddEvent();
@@ -39,11 +27,10 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
         COMPLETE SECURTIY/VERIFICATIONS OF FORMDATA
   */
 
-  // const formattedDate = format(date, "EEEE LLL do");
   const formattedDate = format(date, "M/d/yyyy");
 
-  const handleChange = (e, field) => {
-    const { name, value } = e.target;
+  const handleChange = (event, field) => {
+    const { name, value } = event.target;
     let updatedValue = value;
 
     if (field.autoCapitalize) {
@@ -54,8 +41,8 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
     setErrors((prevErrors) => ({ ...prevErrors, [name]: undefined }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = (event) => {
+    event.preventDefault();
 
     const validationErrors = validateFormData(state);
     if (Object.keys(validationErrors).length > 0) {
@@ -63,12 +50,12 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
       return; // Prevent submission if there are validation errors
     }
 
-    const { firstName, lastName, email, phoneNumber } = state,
-      { startDate, endDate } = setTimeOnDate(date, selectedTime),
-      [start, end] = selectedTime.split(" - "),
-      summary = `CONSULT [${start}-${end}]: ${firstName} ${lastName} - ${formatPhoneNumber(
-        phoneNumber
-      )} - ${email}`;
+    const { firstName, lastName, email, phoneNumber } = state;
+    const { startDate, endDate } = setTimeOnDate(date, selectedTime);
+    const [start, end] = selectedTime.split(" - ");
+    const summary = `CONSULT [${start}-${end}]: ${firstName} ${lastName} - ${formatPhoneNumber(
+      phoneNumber
+    )} - ${email}`;
 
     try {
       onSubmitForm();
@@ -84,26 +71,39 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
     }
   };
 
-  const formProps = {
-    errors,
-    handleChange,
-    isPending: mutation.isPending,
-    isSuccess: mutation.isSuccess,
-    state,
+  const handleHomeButton = (event) => {
+    event.preventDefault();
+    setSelectedDate
+      ? setSelectedDate(null)
+      : navigate(location.state?.prevPath || "/");
   };
 
   return (
-    <form className="container">
-      <div className="row">
-        <h2>Schedule Consultation</h2>
-        <h4>
-          {formattedDate} {selectedTime}:
-        </h4>
+    <form className="container show-times-container">
+      <div className="row show-times-title p-2">
+        <span style={{ fontSize: "1rem", fontWeight: "500" }}>
+          Schedule Consultation
+        </span>
+        <span style={{ fontSize: "1rem" }}>
+          {formattedDate} @{" "}
+          <span className="text-primary">
+            <b>{selectedTime}</b>
+          </span>
+        </span>
       </div>
-      <div className="row">
-        <div className="container fit-content">
+      <div className="row schedule-form">
+        <div
+          className={`container${!mutation.isSuccess ? " fit-content" : ""}`}
+        >
           {formFields.map((field, idx) => (
-            <FormInput {...formProps} field={field} key={idx} />
+            <FormInput
+              errors={errors}
+              field={field}
+              handleChange={handleChange}
+              mutation={mutation}
+              state={state}
+              key={idx}
+            />
           ))}
         </div>
         <div
@@ -111,7 +111,6 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
           style={{ display: mutation.isSuccess && "none" }}
         >
           <button
-            className="btn btn-warning"
             onClick={handleSubmit}
             disabled={mutation.isPending || mutation.isSuccess}
           >
@@ -129,13 +128,7 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
             <p className="pt-4">
               <b style={{ color: "green" }}>Form submitted successfully!</b>
             </p>
-            <button
-              className="btn btn-success"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate(location.state.prevPath || "/");
-              }}
-            >
+            <button className="btn btn-success" onClick={handleHomeButton}>
               Home
             </button>
           </div>
@@ -144,115 +137,3 @@ export default function ScheduleForm({ date, selectedTime, onSubmitForm }) {
     </form>
   );
 }
-
-const FormInput = ({
-  errors,
-  field,
-  handleChange,
-  isPending,
-  isSuccess,
-  state,
-}) => (
-  <React.Fragment>
-    <div className="row pt-2">
-      <div className="col text-end formFieldAbout">
-        <b>{field.title}:</b>
-      </div>
-      <div className="col-auto p-0 text-start">
-        {isSuccess ? (
-          state[field.name]
-        ) : (
-          <input
-            type={field.type}
-            name={field.name}
-            onChange={(e) => handleChange(e, field)}
-            value={state[field.name]}
-            autoCapitalize={field.autoCapitalize ? "on" : "off"}
-            style={{
-              ...(field.autoCapitalize && {
-                textTransform: "capitalize",
-              }),
-              ...(errors[field.name] && {
-                border: "1px solid red",
-                borderRadius: 2.5,
-              }),
-            }}
-            autoComplete="on"
-            disabled={isPending}
-            className="w-100"
-          />
-        )}
-      </div>
-    </div>
-    {errors[field.name] && (
-      <div
-        className="w-100 text-center"
-        style={{ color: "red", fontSize: "0.8em" }}
-      >
-        {errors[field.name]}
-      </div>
-    )}
-  </React.Fragment>
-);
-
-// Format the number as (123) 456-7890
-const formatPhoneNumber = (number) => {
-  // Ensure the input is a string and only contains numbers
-  const cleaned = ("" + number).replace(/\D/g, "");
-  const formatted = cleaned.replace(/^(\d{3})(\d{3})(\d{4})$/, "($1) $2-$3");
-
-  return formatted;
-};
-
-const validateFormData = (data) => {
-  const { firstName, lastName, email, phoneNumber } = data;
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  const errors = {};
-
-  const errorParams = {
-    firstName: [
-      {
-        check: !firstName || firstName.length < 2,
-        message: "First name must be at least 2 characters long.",
-      },
-      {
-        check: firstName && firstName.length > 32,
-        message: "First name must be less than 32 characters long.",
-      },
-    ],
-    lastName: [
-      {
-        check: !lastName || lastName.length < 2,
-        message: "Last name must be at least 2 characters long.",
-      },
-      {
-        check: lastName && lastName.length > 32,
-        message: "Last name must be less than 32 characters long.",
-      },
-    ],
-    email: [
-      {
-        check: !email || !emailRegex.test(email),
-        message: "Please enter a valid email address.",
-      },
-    ],
-    phoneNumber: [
-      {
-        check: !phoneNumber || phoneNumber.replace(/\D/g, "").length !== 10,
-        message: "Phone number must be 10 digits long.",
-      },
-    ],
-  };
-
-  for (const key in errorParams) {
-    errorParams[key].some(({ check, message }) => {
-      if (check) {
-        errors[key] = message;
-        return true; // Exit loop once an error is found
-      }
-      return false;
-    });
-  }
-
-  return errors;
-};

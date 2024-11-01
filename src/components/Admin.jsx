@@ -3,11 +3,11 @@ import { useEvents } from "../hooks/useEvents";
 import { GoogleAuthContext } from "../context/GoogleAuth";
 import { EventList } from "./Events";
 import Scheduler from "./Scheduler";
+import { PulseLoader } from "react-spinners";
 
 export default function Admin() {
   const { userInfo, googleAuthLogout } = useContext(GoogleAuthContext);
   const query = useEvents();
-  const { dataUpdatedAt } = query;
 
   return (
     <div className="container p-0 justify-content-center">
@@ -16,15 +16,35 @@ export default function Admin() {
         <h1>
           Google Calendar Events:
           <small className="text-secondary opacity-50">
-            &nbsp; ({new Date(dataUpdatedAt).toTimeString().slice(0, 8)})
+            &nbsp; ({new Date(query.dataUpdatedAt).toTimeString().slice(0, 8)})
           </small>
         </h1>
         <div className="container text-center">
-          <EventList query={query} user={userInfo} consult={true} />
+          {!query.isFetched ? (
+            <PulseLoader
+              color="#fff"
+              cssOverride={{ opacity: "20%" }}
+              size={10}
+              speedMultiplier={0.7}
+              className="py-3"
+            />
+          ) : (
+            <EventList query={query} user={userInfo} consult={true} />
+          )}
         </div>
         <h3 className="mt-4">Other Events:</h3>
         <div className="container text-center">
-          <EventList query={query} consult={false} />
+          {!query.isFetched ? (
+            <PulseLoader
+              color="#fff"
+              cssOverride={{ opacity: "20%" }}
+              size={10}
+              speedMultiplier={0.7}
+              className="py-3"
+            />
+          ) : (
+            <EventList query={query} consult={false} />
+          )}
         </div>
       </div>
       {userInfo && (

@@ -51,7 +51,6 @@ const initialEventData = {
 };
 
 const getEvents = async () => {
-  console.log("getting");
   const response = await fetch(`${apiUrl}/events/`);
   if (!response.ok) {
     throw new Error("Failed to fetch events.");

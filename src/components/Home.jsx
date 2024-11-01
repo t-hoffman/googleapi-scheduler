@@ -2,9 +2,10 @@ import React from "react";
 import { useEvents } from "../hooks/useEvents";
 import { EventList } from "./Events";
 import Scheduler from "./Scheduler";
+import { PulseLoader } from "react-spinners";
 
-export default function Homes() {
-  console.log("<HOME />");
+export default function Home() {
+  // console.log("<HOME />");
   const query = useEvents();
 
   return (
@@ -18,7 +19,17 @@ export default function Homes() {
           </small>
         </h1>
         <div className="container text-center">
-          <EventList query={query} consult={true} />
+          {!query.isFetched ? (
+            <PulseLoader
+              color="#fff"
+              cssOverride={{ opacity: "20%" }}
+              size={10}
+              speedMultiplier={0.7}
+              className="py-3"
+            />
+          ) : (
+            <EventList query={query} consult={true} />
+          )}
         </div>
       </div>
     </div>

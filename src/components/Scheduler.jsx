@@ -1,6 +1,5 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Calendar from "react-calendar";
-import { useLocation, useNavigate } from "react-router-dom";
 import {
   maxDate,
   openSaturday,
@@ -9,31 +8,25 @@ import {
   useEvents,
   userTimeZone,
 } from "../hooks/useEvents";
-import { format, isBefore, isSameDay } from "date-fns";
+import { isBefore, isSameDay } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { NextIcon, PrevIcon } from "./Icons";
+import ShowTimes from "./ShowTimes";
 import "../assets/Scheduler.css";
+
+export const checkWeekend = (date) => {
+  const dayOfWeek = new Date(date).getDay();
+  return (!openSunday && dayOfWeek === 0) || (!openSaturday && dayOfWeek === 6);
+};
 
 export default function Scheduler() {
   // console.log("<SCHEDULER />");
-  const location = useLocation();
-  const navigate = useNavigate();
-  const query = useEvents(),
-    { disabledDates } = query.data;
-
-  const handleClick = (value, event) => {
-    const dateParam = format(value, "LL/dd/y");
-    navigate(`/schedule/${dateParam}`, {
-      state: { prevPath: location.pathname },
-    });
-  };
-
-  const checkWeekend = (date) => {
-    const dayOfWeek = new Date(date).getDay();
-    return (
-      (!openSunday && dayOfWeek === 0) || (!openSaturday && dayOfWeek === 6)
-    );
-  };
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [defaultStartDate, setDefaultStartDate] = useState();
+  const dateRef = useRef();
+  const monthsAvailable = useRef(new Set());
+  const query = useEvents();
+  const { disabledDates, events } = query.data;
 
   const tileDisabled = ({ date, view }) =>
     view === "month" &&
@@ -54,23 +47,42 @@ export default function Scheduler() {
         isBefore(date, maxDate) &&
         !checkWeekend(date);
 
+      if (isAvailable && events.length) {
+        monthsAvailable.current.add(date);
+      }
+
       return isAvailable && "btn btn-primary border-2 border-black";
     }
   };
 
-  return (
-    <div className="container">
-      <h2>Please select a time:</h2>
-      <Calendar
-        calendarType="gregory"
-        maxDate={maxDate}
-        minDate={toZonedTime(new Date(), timeZone)}
-        onChange={handleClick}
-        tileClassName={tileClassName}
-        tileDisabled={tileDisabled}
-        nextLabel={<NextIcon />}
-        prevLabel={<PrevIcon />}
-      />
-    </div>
+  useEffect(() => {
+    if (monthsAvailable.current.size === 0 && events.length > 0) {
+      const now = new Date();
+      setDefaultStartDate(new Date(now.getFullYear(), now.getMonth() + 1, 1));
+    }
+  }, [events.length]);
+
+  if (dateRef.current !== selectedDate && selectedDate !== null) {
+    dateRef.current = selectedDate;
+  }
+
+  return !selectedDate ? (
+    <Calendar
+      calendarType="gregory"
+      minDate={defaultStartDate || toZonedTime(new Date(), timeZone)}
+      maxDate={maxDate}
+      onChange={(value) => setSelectedDate(value)}
+      tileClassName={tileClassName}
+      tileDisabled={tileDisabled}
+      nextLabel={<NextIcon />}
+      prevLabel={<PrevIcon />}
+      defaultActiveStartDate={defaultStartDate || dateRef.current}
+    />
+  ) : (
+    <ShowTimes
+      query={query}
+      selectedDate={selectedDate}
+      setSelectedDate={setSelectedDate}
+    />
   );
 }
