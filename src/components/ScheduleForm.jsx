@@ -1,5 +1,4 @@
 import React, { useId, useState } from "react";
-import { format } from "date-fns";
 import { setTimeOnDate, useAddEvent, userTimeZone } from "../hooks/useEvents";
 import { useLocation, useNavigate } from "react-router-dom";
 import FormInput from "./FormInput";
@@ -9,6 +8,8 @@ import {
   formatPhoneNumber,
   validateFormData,
 } from "../utils/scheduleForm";
+import { SubmitIcon } from "./Icons";
+import { PuffLoader } from "react-spinners";
 
 export default function ScheduleForm({
   date,
@@ -26,8 +27,6 @@ export default function ScheduleForm({
   /*
         COMPLETE SECURTIY/VERIFICATIONS OF FORMDATA
   */
-
-  const formattedDate = format(date, "M/d/yyyy");
 
   const handleChange = (event, field) => {
     const { name, value } = event.target;
@@ -79,61 +78,66 @@ export default function ScheduleForm({
   };
 
   return (
-    <form className="container show-times-container">
-      <div className="row show-times-title p-2">
-        <span style={{ fontSize: "1rem", fontWeight: "500" }}>
-          Schedule Consultation
-        </span>
-        <span style={{ fontSize: "1rem" }}>
-          {formattedDate} @{" "}
-          <span className="text-primary">
-            <b>{selectedTime}</b>
-          </span>
-        </span>
+    <form onSubmit={handleSubmit}>
+      <div className={`container${!mutation.isSuccess ? " fit-content" : ""}`}>
+        {formFields.map((field, idx) => (
+          <FormInput
+            errors={errors}
+            field={field}
+            handleChange={handleChange}
+            mutation={mutation}
+            state={state}
+            key={idx}
+          />
+        ))}
       </div>
-      <div className="row schedule-form">
-        <div
-          className={`container${!mutation.isSuccess ? " fit-content" : ""}`}
-        >
-          {formFields.map((field, idx) => (
-            <FormInput
-              errors={errors}
-              field={field}
-              handleChange={handleChange}
-              mutation={mutation}
-              state={state}
-              key={idx}
-            />
-          ))}
-        </div>
-        <div
-          className="w-100 text-center pt-3"
-          style={{ display: mutation.isSuccess && "none" }}
-        >
-          <button
-            onClick={handleSubmit}
-            disabled={mutation.isPending || mutation.isSuccess}
-          >
-            {mutation.isPending ? "Submitting..." : "Submit"}
+      <div
+        className="w-100 text-center pt-3"
+        style={{ display: mutation.isSuccess && "none" }}
+      >
+        {!mutation.isSuccess && (
+          <SubmitButton isPending={mutation.isPending} onClick={handleSubmit} />
+        )}
+      </div>
+      {mutation.isError && (
+        <p className="pt-1">
+          <b style={{ color: "red" }}>Error: {mutation.error.message}</b>
+        </p>
+      )}
+      {((import.meta.env.DEV && (mutation.isSuccess || mutation.isPending)) ||
+        mutation.isSuccess) && (
+        <div>
+          <p className="pt-4">
+            <b style={{ color: "green" }}>Form submitted successfully!</b>
+          </p>
+          <button className="btn btn-success" onClick={handleHomeButton}>
+            Home
           </button>
         </div>
-        {mutation.isError && (
-          <p>
-            <b style={{ color: "red" }}>Error: {mutation.error.message}</b>
-          </p>
-        )}
-        {((import.meta.env.DEV && (mutation.isSuccess || mutation.isPending)) ||
-          mutation.isSuccess) && (
-          <div>
-            <p className="pt-4">
-              <b style={{ color: "green" }}>Form submitted successfully!</b>
-            </p>
-            <button className="btn btn-success" onClick={handleHomeButton}>
-              Home
-            </button>
-          </div>
-        )}
-      </div>
+      )}
     </form>
   );
 }
+
+const SubmitButton = ({ onClick, isPending }) => (
+  <div className="d-flex justify-content-end pe-3 schedule-form-submit">
+    <button
+      disabled={isPending}
+      className="d-flex align-items-center text-primary"
+      {...(!isPending && { onClick })}
+    >
+      <b className="pe-1" style={{ fontSize: "1rem" }}>
+        {isPending ? "Submitting" : "Submit"}
+      </b>{" "}
+      {!isPending ? (
+        <SubmitIcon width="25px" height="25px" style={{ fill: "#0C6DFD" }} />
+      ) : (
+        <PuffLoader
+          color="#505056"
+          cssOverride={{ display: "inline-block" }}
+          size={25}
+        />
+      )}
+    </button>
+  </div>
+);

@@ -124,6 +124,7 @@ function mapEvents(events) {
 
 // Find available 15-minute chunks and manage disabled dates
 export function sortDatesTimes(events) {
+  console.log("sorting...");
   const eventMap = mapEvents(events);
   const sortedTimes = new Map();
   const disabledDates = [];

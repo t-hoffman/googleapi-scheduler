@@ -1,6 +1,6 @@
 import {
+  useIsMutating,
   useMutation,
-  useMutationState,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -51,6 +51,7 @@ const initialEventData = {
 };
 
 const getEvents = async () => {
+  console.log("getting");
   const response = await fetch(`${apiUrl}/events/`);
   if (!response.ok) {
     throw new Error("Failed to fetch events.");
@@ -61,13 +62,17 @@ const getEvents = async () => {
 };
 
 function useEvents() {
-  // Make sure there is no request in progress so as not to override the optimistic update
-  // This is the method I found since the app navigates to another route
-  const mutation = useMutationState({
-      filters: { mutationKey: ["add_event"], status: "pending" },
-      select: (mutation) => mutation.state.status,
-    }),
-    status = mutation[mutation.length - 1];
+  /**
+   * useIsMutating :: subscribe to active ['add_event'] mutations. If any active, disable
+   * the query and use the cache.  This was helpful when the app was using the /schedule route.
+   * When an event was added, the UI was optimistically updated and clicking on "Home" after
+   * adding, the event would disappear since useEvents refetched & ['add_event'] had not yet
+   * completed its POST. Once invalidateQueries was invoked (['add_event'].onSuccess) the
+   * event would re-appear.
+   */
+  const mutationCount = useIsMutating({
+    filters: { queryKey: ["add_event"], status: "pending" },
+  });
 
   return useQuery({
     queryKey: ["events"],
@@ -75,7 +80,7 @@ function useEvents() {
     initialData: initialEventData,
     refetchInterval: queryStaleTime,
     refetchOnWindowFocus: true,
-    enabled: status !== "pending",
+    enabled: mutationCount < 1,
   });
 }
 
@@ -140,7 +145,7 @@ function useAddEvent() {
       queryClient.invalidateQueries(["events"]);
       console.log("Form successfully submitted: ", data);
     },
-    onError: (error, values, context) => {
+    onError: (_error, _values, context) => {
       console.log("rollback");
       queryClient.setQueryData(["events"], context.prevCache);
     },
@@ -168,7 +173,7 @@ function useDeleteEvent(eventId) {
       }
     },
     onMutate: () => queryClient.getQueryData(["events"]),
-    onError: (err, vars, context) => {
+    onError: (err, _vars, context) => {
       queryClient.setQueryData(["events"], context);
       console.log("Error: ", err);
     },
@@ -183,9 +188,18 @@ function useDeleteEvent(eventId) {
 
       console.log("Successfully deleted event: ", eventId);
     },
-    // onSettled: () => {
-    //   queryClient.invalidateQueries(["events"]);
-    // },
+    onSettled: () => {
+      /**
+       * isMutating :: this is to prevent unnecessary refetching when the user is deleting
+       * multiple events at the same time/close proximity.
+       */
+      const mutationsRunning = queryClient.isMutating({
+        mutationKey: ["delete_event"],
+        type: "active",
+      });
+
+      if (mutationsRunning === 1) queryClient.invalidateQueries(["events"]);
+    },
   });
 }
 

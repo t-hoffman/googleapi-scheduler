@@ -10,10 +10,10 @@ export default function FormInput({
   return (
     <Fragment>
       <div className="row pt-2">
-        <div className="col w-50 text-end">
+        <div className="col text-end" style={{ width: "45%" }}>
           <b>{field.title}:</b>
         </div>
-        <div className="col-auto p-0 w-50 text-start">
+        <div className="col-auto p-0 text-start" style={{ width: "55%" }}>
           {mutation.isSuccess ? (
             state[field.name]
           ) : (

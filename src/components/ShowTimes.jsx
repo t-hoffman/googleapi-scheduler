@@ -6,6 +6,8 @@ import { toZonedTime } from "date-fns-tz";
 import { format, isSameDay } from "date-fns";
 import { checkWeekend } from "./Scheduler";
 import TimeList from "./TimeList";
+import { BackIcon } from "./Icons";
+import { useIsFetching } from "@tanstack/react-query";
 
 export default function ShowTimes({
   query = useEvents(),
@@ -33,7 +35,11 @@ export default function ShowTimes({
       checkWeekend(date) ||
       (!showTimes && !isSubmitting)
     ) {
-      navigate("/");
+      if (month && day && year) {
+        navigate("/");
+      } else {
+        setSelectedDate(null);
+      }
     }
   }, [date, minDate, maxDate, isSubmitting, showTimes]);
 
@@ -48,41 +54,48 @@ export default function ShowTimes({
     }
   };
 
-  return (
-    !isNaN(date) && (
-      <div className="container schedule-w-356">
-        {!selectedTime && (
-          <div className="row show-times-container">
-            <div
-              className="text-center p-2 show-times-title"
-              style={{ fontSize: "1.5rem", fontWeight: "500" }}
-            >
-              <span style={{ fontSize: "1rem" }}>
-                {format(date, "MMMM do")}
-              </span>
-            </div>
-            <div className="show-times">
-              <TimeList
-                showTimes={showTimes}
-                setSelectedTime={setSelectedTime}
-              />
-            </div>
-          </div>
+  return !isNaN(date) ? (
+    <div className="show-times-container schedule-w-356">
+      <div className="text-center show-times-title">
+        {!selectedTime ? (
+          <span>{format(date, "MMMM do")}</span>
+        ) : (
+          <React.Fragment>
+            Schedule Consultation
+            <br />
+            {format(date, "M/d/yyyy")} @{" "}
+            <b className="text-primary">{selectedTime}</b>
+          </React.Fragment>
         )}
-        <div className="row">
-          {selectedTime && (
-            <ScheduleForm
-              date={date}
-              selectedTime={selectedTime}
-              onSubmitForm={() => setIsSubmitting(true)}
-              setSelectedDate={setSelectedDate}
-            />
-          )}
-        </div>
-        <button className="mt-4 btn btn-secondary" onClick={handleBackButton}>
-          Back
-        </button>
       </div>
-    )
-  );
+      <div className={!selectedTime ? "show-times" : "schedule-form"}>
+        {!selectedTime ? (
+          <TimeList showTimes={showTimes} setSelectedTime={setSelectedTime} />
+        ) : (
+          <ScheduleForm
+            date={date}
+            selectedTime={selectedTime}
+            onSubmitForm={() => setIsSubmitting(true)}
+            setSelectedDate={setSelectedDate}
+          />
+        )}
+        <BackButton onClick={handleBackButton} padding={selectedTime && 2} />
+      </div>
+    </div>
+  ) : null;
 }
+
+export const BackButton = ({ onClick, padding }) => (
+  <div
+    className={`d-flex align-items-center justify-content-center ps-3 fit-content pt-${
+      padding || 4
+    }`}
+    style={{ cursor: "pointer", margin: "0 auto" }}
+    onClick={onClick}
+  >
+    <BackIcon width="15px" height="15px" style={{ fill: "#a1a1aa" }} />
+    <div className="px-1">
+      <b style={{ color: "#a1a1aa", fontSize: "1rem" }}>Go Back</b>
+    </div>
+  </div>
+);

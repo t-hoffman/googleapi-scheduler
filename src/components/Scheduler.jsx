@@ -24,14 +24,17 @@ export default function Scheduler() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [defaultStartDate, setDefaultStartDate] = useState();
   const dateRef = useRef();
-  const monthsAvailable = useRef(new Set());
+  const viewAvailability = useRef(new Set());
   const query = useEvents();
   const { disabledDates, events } = query.data;
 
-  const tileDisabled = ({ date, view }) =>
-    view === "month" &&
-    (disabledDates.some((dDate) => isSameDay(dDate, date)) ||
-      checkWeekend(date));
+  const tileDisabled = ({ date, view }) => {
+    const isDisabled = disabledDates.some((dDate) => isSameDay(dDate, date));
+    if (view === "month" && (isDisabled || checkWeekend(date))) {
+      viewAvailability.current.delete(date.toString());
+      return true;
+    }
+  };
 
   const tileClassName = ({ date, view }) => {
     if (view === "month") {
@@ -48,7 +51,7 @@ export default function Scheduler() {
         !checkWeekend(date);
 
       if (isAvailable && events.length) {
-        monthsAvailable.current.add(date);
+        viewAvailability.current.add(date.toString());
       }
 
       return isAvailable && "btn btn-primary border-2 border-black";
@@ -56,11 +59,11 @@ export default function Scheduler() {
   };
 
   useEffect(() => {
-    if (monthsAvailable.current.size === 0 && events.length > 0) {
+    if (viewAvailability.current.size === 0 && events.length > 0) {
       const now = new Date();
       setDefaultStartDate(new Date(now.getFullYear(), now.getMonth() + 1, 1));
     }
-  }, [events.length]);
+  }, [viewAvailability.current.size, events.length]);
 
   if (dateRef.current !== selectedDate && selectedDate !== null) {
     dateRef.current = selectedDate;
@@ -68,6 +71,7 @@ export default function Scheduler() {
 
   return !selectedDate ? (
     <Calendar
+      key={defaultStartDate}
       calendarType="gregory"
       minDate={defaultStartDate || toZonedTime(new Date(), timeZone)}
       maxDate={maxDate}
