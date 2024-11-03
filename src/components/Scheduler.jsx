@@ -15,25 +15,26 @@ import { NextIcon, PrevIcon } from "./Icons";
 import ShowTimes from "./ShowTimes";
 import "../assets/Scheduler.css";
 
-export const checkWeekend = (date) => {
-  const dayOfWeek = new Date(date).getDay();
-  return (!openSunday && dayOfWeek === 0) || (!openSaturday && dayOfWeek === 6);
+export const isWeekend = (date) => {
+  const day = new Date(date).getDay();
+  return (!openSunday && day === 0) || (!openSaturday && day === 6);
 };
 
 export default function Scheduler() {
   // console.log("<SCHEDULER />");
   const [selectedDate, setSelectedDate] = useState(null);
   const [defaultStartDate, setDefaultStartDate] = useState();
-  const [monthView, setMonthView] = useState(null);
+  const [currentMonthView, setCurrentMonthView] = useState(null);
   const dateRef = useRef();
   const query = useEvents();
-  const { disabledDates, events } = query.data;
+
   const viewAvailability = new Set();
   const minDate = toZonedTime(new Date(), timeZone);
+  const { disabledDates, events } = query.data;
 
   const tileDisabled = ({ date, view }) => {
     const isDisabled = disabledDates.some((dDate) => isSameDay(dDate, date));
-    if (view === "month" && (isDisabled || checkWeekend(date))) {
+    if (view === "month" && (isDisabled || isWeekend(date))) {
       viewAvailability.delete(date.toString());
       return true;
     }
@@ -51,7 +52,7 @@ export default function Scheduler() {
         !disabledDates.some((hDate) => isSameDay(hDate, date)) &&
         isBefore(zonedToday, date) &&
         isBefore(date, maxDate) &&
-        !checkWeekend(date);
+        !isWeekend(date);
 
       if (isAvailable && events.length) {
         viewAvailability.add(date.toString());
@@ -61,29 +62,36 @@ export default function Scheduler() {
     }
   };
 
-  const mutations = useMutationState({
+  const successfulMutations = useMutationState({
     filters: { status: "success" },
     select: (mutation) => mutation.state.variables,
   });
 
   useEffect(() => {
-    const minViewAvailable = mutations.some((event) => {
-      const minDateMonth = minDate.getMonth();
-      const eventMonth = new Date(event.startDate).getMonth();
-      return eventMonth === minDateMonth;
-    });
-
     if (viewAvailability.size === 0 && events.length > 0 && !selectedDate) {
-      const now = new Date();
-      setDefaultStartDate(new Date(now.getFullYear(), now.getMonth() + 1, 1));
+      const nextMonthStartDate = new Date(
+        minDate.getFullYear(),
+        minDate.getMonth() + 1,
+        1
+      );
+      setDefaultStartDate(nextMonthStartDate);
     } else if (
       defaultStartDate &&
-      minViewAvailable &&
       defaultStartDate.getMonth() > minDate.getMonth()
     ) {
-      setDefaultStartDate(null);
+      const minViewAvailable = successfulMutations.some((event) => {
+        const eventMonth = new Date(event.startDate).getMonth();
+        const dateIsDisabled = disabledDates.some(
+          (dDate) =>
+            new Date(dDate).toDateString() ===
+            new Date(event.endDate).toDateString()
+        );
+        return eventMonth === minDate.getMonth() && !dateIsDisabled;
+      });
+
+      if (minViewAvailable) setDefaultStartDate(null);
     }
-  }, [selectedDate, viewAvailability.size, events.length, monthView]);
+  }, [selectedDate, viewAvailability.size, events.length, currentMonthView]);
 
   if (dateRef.current !== selectedDate && selectedDate !== null) {
     dateRef.current = selectedDate;
@@ -96,9 +104,9 @@ export default function Scheduler() {
       minDate={defaultStartDate || minDate}
       maxDate={maxDate}
       onActiveStartDateChange={({ _action, activeStartDate }) =>
-        setMonthView(activeStartDate)
+        setCurrentMonthView(activeStartDate)
       }
-      onChange={(value) => setSelectedDate(value)}
+      onClickDay={(value) => setSelectedDate(value)}
       tileClassName={tileClassName}
       tileDisabled={tileDisabled}
       nextLabel={<NextIcon />}

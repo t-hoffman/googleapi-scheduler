@@ -4,7 +4,7 @@ import { toZonedTime } from "date-fns-tz";
 import { format, isSameDay } from "date-fns";
 import { useEvents, getShowTimes, maxDate, timeZone } from "../hooks/useEvents";
 import ScheduleForm from "./ScheduleForm";
-import { checkWeekend } from "./Scheduler";
+import { isWeekend } from "./Scheduler";
 import TimeList from "./TimeList";
 import { BackIcon } from "./Icons";
 
@@ -31,7 +31,7 @@ export default function ShowTimes({
       isNaN(date) ||
       (date < minDate && !isSameDay(date, minDate)) ||
       (date > maxDate && !isSameDay(date, maxDate)) ||
-      checkWeekend(date) ||
+      isWeekend(date) ||
       (!showTimes && !isSubmitting)
     ) {
       if (month && day && year) {

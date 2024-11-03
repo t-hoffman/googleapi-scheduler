@@ -30,6 +30,7 @@ const getUserData = () => {
 };
 
 export function GoogleAuth() {
+  console.log("<GoogleAuth/>");
   const [userInfo, setUserInfo] = useState(getUserData());
 
   const handleSuccess = (resp) => {
