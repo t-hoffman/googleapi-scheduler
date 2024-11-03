@@ -205,8 +205,52 @@
   color: #505056 !important;
 }
 
-/* @media (max-width: 530px) {
-  .show-times-grid {
-    grid-template-columns: repeat(2, 1fr);
+@media (max-width: 415px) {
+  .schedule-w-356,
+  .react-calendar {
+    max-width: 100% !important;
   }
-} */
+
+  .container {
+    padding: 0px !important;
+  }
+
+  h1 {
+    font-size: 1.5rem !important;
+  }
+
+  body div .col {
+    font-size: 0.8rem;
+  }
+
+  .col-auto button {
+    font-size: 0.8rem !important;
+    padding: 8px;
+    width: fit-content !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .schedule-w-356,
+  .react-calendar {
+    max-width: 100% !important;
+  }
+
+  .container {
+    padding: 0px !important;
+  }
+
+  h1 {
+    font-size: 1.5rem !important;
+  }
+
+  body div .col {
+    font-size: 0.9rem;
+  }
+
+  .col-auto button {
+    font-size: 0.9rem !important;
+    padding: 8px;
+    width: fit-content !important;
+  }
+}

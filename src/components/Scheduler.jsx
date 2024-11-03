@@ -5,11 +5,12 @@ import {
   openSaturday,
   openSunday,
   timeZone,
-  useEvents,
   userTimeZone,
+  useEvents,
 } from "../hooks/useEvents";
 import { isBefore, isSameDay } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
+import { useMutationState } from "@tanstack/react-query";
 import { NextIcon, PrevIcon } from "./Icons";
 import ShowTimes from "./ShowTimes";
 import "../assets/Scheduler.css";
@@ -23,15 +24,17 @@ export default function Scheduler() {
   // console.log("<SCHEDULER />");
   const [selectedDate, setSelectedDate] = useState(null);
   const [defaultStartDate, setDefaultStartDate] = useState();
+  const [monthView, setMonthView] = useState(null);
   const dateRef = useRef();
-  const viewAvailability = useRef(new Set());
   const query = useEvents();
   const { disabledDates, events } = query.data;
+  const viewAvailability = new Set();
+  const minDate = toZonedTime(new Date(), timeZone);
 
   const tileDisabled = ({ date, view }) => {
     const isDisabled = disabledDates.some((dDate) => isSameDay(dDate, date));
     if (view === "month" && (isDisabled || checkWeekend(date))) {
-      viewAvailability.current.delete(date.toString());
+      viewAvailability.delete(date.toString());
       return true;
     }
   };
@@ -51,19 +54,36 @@ export default function Scheduler() {
         !checkWeekend(date);
 
       if (isAvailable && events.length) {
-        viewAvailability.current.add(date.toString());
+        viewAvailability.add(date.toString());
       }
 
       return isAvailable && "btn btn-primary border-2 border-black";
     }
   };
 
+  const mutations = useMutationState({
+    filters: { status: "success" },
+    select: (mutation) => mutation.state.variables,
+  });
+
   useEffect(() => {
-    if (viewAvailability.current.size === 0 && events.length > 0) {
+    const minViewAvailable = mutations.some((event) => {
+      const minDateMonth = minDate.getMonth();
+      const eventMonth = new Date(event.startDate).getMonth();
+      return eventMonth === minDateMonth;
+    });
+
+    if (viewAvailability.size === 0 && events.length > 0 && !selectedDate) {
       const now = new Date();
       setDefaultStartDate(new Date(now.getFullYear(), now.getMonth() + 1, 1));
+    } else if (
+      defaultStartDate &&
+      minViewAvailable &&
+      defaultStartDate.getMonth() > minDate.getMonth()
+    ) {
+      setDefaultStartDate(null);
     }
-  }, [viewAvailability.current.size, events.length]);
+  }, [selectedDate, viewAvailability.size, events.length, monthView]);
 
   if (dateRef.current !== selectedDate && selectedDate !== null) {
     dateRef.current = selectedDate;
@@ -71,10 +91,13 @@ export default function Scheduler() {
 
   return !selectedDate ? (
     <Calendar
-      key={defaultStartDate}
+      key={defaultStartDate ? defaultStartDate : events.length}
       calendarType="gregory"
-      minDate={defaultStartDate || toZonedTime(new Date(), timeZone)}
+      minDate={defaultStartDate || minDate}
       maxDate={maxDate}
+      onActiveStartDateChange={({ _action, activeStartDate }) =>
+        setMonthView(activeStartDate)
+      }
       onChange={(value) => setSelectedDate(value)}
       tileClassName={tileClassName}
       tileDisabled={tileDisabled}

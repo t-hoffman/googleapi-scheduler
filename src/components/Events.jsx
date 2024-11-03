@@ -69,7 +69,13 @@ export function Event({ date, event, isEven, user }) {
             className="btn btn-danger opacity-75"
             disabled={isPending}
             style={{ width: "75px" }}
-            onClick={mutate}
+            onClick={() =>
+              mutate({
+                eventId: event.id,
+                startDate: event.start.dateTime,
+                endDate: event.end.dateTime,
+              })
+            }
           >
             {!isPending ? (
               "Delete"

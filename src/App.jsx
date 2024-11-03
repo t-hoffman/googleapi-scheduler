@@ -1,9 +1,9 @@
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Admin from "./components/Admin";
 import { GoogleAuth } from "./context/GoogleAuth";
 import Home from "./components/Home";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ShowTimes from "./components/ShowTimes";
 
 const queryClient = new QueryClient();

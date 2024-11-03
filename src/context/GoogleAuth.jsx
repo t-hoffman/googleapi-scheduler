@@ -4,7 +4,6 @@ import {
   GoogleOAuthProvider,
   GoogleLogin,
   googleLogout,
-  useGoogleOneTapLogin,
 } from "@react-oauth/google";
 import { GOOGLE_CLIENT_ID } from "../constants";
 
@@ -31,8 +30,6 @@ const getUserData = () => {
 };
 
 export function GoogleAuth() {
-  const sessionData = JSON.parse(sessionStorage.getItem("googleUserInfo"));
-  //   const tokenExpired = Date.now() > sessionData.exp * 1000;
   const [userInfo, setUserInfo] = useState(getUserData());
 
   const handleSuccess = (resp) => {
@@ -65,12 +62,6 @@ export function GoogleAuth() {
         {!userInfo || userInfo?.exp * 1000 < Date.now() ? (
           <div className="row g-0 mt-5 mb-3 justify-content-center">
             <div className="col-auto">
-              {/* <UseGoogleOneTap
-                onSuccess={handleSuccess}
-                onError={handleFailure}
-                auto_select={true}
-                ux_mode={redirect}
-              /> */}
               <GoogleLogin
                 onSuccess={handleSuccess}
                 onFailure={handleFailure}
@@ -87,7 +78,3 @@ export function GoogleAuth() {
     </GoogleAuthContext.Provider>
   );
 }
-
-const UseGoogleOneTap = (props) => {
-  return useGoogleOneTapLogin({ ...props });
-};

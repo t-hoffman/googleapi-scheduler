@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useEvents, getShowTimes, maxDate, timeZone } from "../hooks/useEvents";
-import ScheduleForm from "./ScheduleForm";
 import { toZonedTime } from "date-fns-tz";
 import { format, isSameDay } from "date-fns";
+import { useEvents, getShowTimes, maxDate, timeZone } from "../hooks/useEvents";
+import ScheduleForm from "./ScheduleForm";
 import { checkWeekend } from "./Scheduler";
 import TimeList from "./TimeList";
 import { BackIcon } from "./Icons";
-import { useIsFetching } from "@tanstack/react-query";
 
 export default function ShowTimes({
   query = useEvents(),
@@ -79,17 +78,15 @@ export default function ShowTimes({
             setSelectedDate={setSelectedDate}
           />
         )}
-        <BackButton onClick={handleBackButton} padding={selectedTime && 2} />
+        <BackButton onClick={handleBackButton} />
       </div>
     </div>
   ) : null;
 }
 
-export const BackButton = ({ onClick, padding }) => (
+export const BackButton = ({ onClick }) => (
   <div
-    className={`d-flex align-items-center justify-content-center ps-3 fit-content pt-${
-      padding || 4
-    }`}
+    className={`d-flex align-items-center justify-content-center fit-content pt-4`}
     style={{ cursor: "pointer", margin: "0 auto" }}
     onClick={onClick}
   >
